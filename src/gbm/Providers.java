@@ -53,7 +53,7 @@ public final class Providers {
       List < Object > screens = Json.list(g.get("screenshots"));
       String hero = screens.isEmpty() ? "" : Json.str(Json.map(screens.get(0)), "image_id");
       long date = Json.num(g, "first_release_date");
-      games.add(Json.obj("id", "igdb:" + Json.num(g, "id"), "name", Json.str(g, "name"), "summary", Json.str(g, "summary"), "platforms", names(g.get("platforms")), "genres", names(g.get("genres")), "cover", image.isBlank() ? "" : "https://images.igdb.com/igdb/image/upload/t_cover_big/" + image + ".jpg", "hero", hero.isBlank() ? "" : "https://images.igdb.com/igdb/image/upload/t_screenshot_big/" + hero + ".jpg", "year", date == 0 ? "" : Instant.ofEpochSecond(date).atZone(ZoneOffset.UTC).getYear(), "source", "IGDB"));
+      games.add(Json.obj("id", "igdb:" + Json.num(g, "id"), "name", Json.str(g, "name"), "summary", Json.str(g, "summary"), "platforms", names(g.get("platforms")), "genres", names(g.get("genres")), "cover", image.isBlank() ? "" : "https://images.igdb.com/igdb/image/upload/t_cover_big_2x/" + image + ".jpg", "hero", hero.isBlank() ? "" : "https://images.igdb.com/igdb/image/upload/t_1080p/" + hero + ".jpg", "year", date == 0 ? "" : Instant.ofEpochSecond(date).atZone(ZoneOffset.UTC).getYear(), "source", "IGDB"));
     }
     return games;
   }

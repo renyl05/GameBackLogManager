@@ -1,0 +1,6 @@
+Fredoka by The Fredoka Project Authors.
+Source: https://github.com/google/fonts/tree/main/ofl/fredoka
+Variable font blob SHA: 349b6ecef8a358ede29b7bf74a08196be5d71b25
+Static runtime instances created with fontTools: wdth=100, wght=400/600/700.
+SIL Open Font License 1.1: see Fredoka-OFL.txt.
+These fonts are used only for the interface. The original logo is traced from the user-provided artwork.

@@ -1,0 +1,25 @@
+# Configurazione locale. I segreti possono essere forniti anche come variabili d'ambiente.
+PORT=8787
+BIND_HOST=127.0.0.1
+PUBLIC_BASE_URL=http://127.0.0.1:8787
+DATA_FILE=data/database.json
+# IGDB / Twitch: https://dev.twitch.tv/console/apps
+IGDB_CLIENT_ID=
+IGDB_CLIENT_SECRET=
+# Steam Web API: https://steamcommunity.com/dev/apikey
+STEAM_API_KEY=
+# Recupero password SMTP con STARTTLS (porta 587). Non serve per registrarsi/accedere.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+
+# Per PostgreSQL (facoltativo in locale). URL JDBC senza query/credenziali incorporate.
+# In cloud usare variabili d'ambiente, non caricare segreti nel repository.
+JDBC_DATABASE_URL=
+JDBC_DATABASE_USER=
+JDBC_DATABASE_PASSWORD=
+REQUIRE_DATABASE=false
+# Recupero password via HTTPS: alternativa a SMTP, necessaria su Render Free.
+BREVO_API_KEY=

@@ -12,5 +12,7 @@ java -cp build\main;build\test gbm.IntegrationTest
 if errorlevel 1 exit /b 1
 java -cp build\main;build\test gbm.ProviderTest
 if errorlevel 1 exit /b 1
+java -Djava.awt.headless=true -cp build\main;build\test;resources gbm.ThemeTest
+if errorlevel 1 exit /b 1
 if defined GBM_TEST_H2_JAR java -cp "build\main;build\test;%GBM_TEST_H2_JAR%" gbm.DatabaseTest
 pause

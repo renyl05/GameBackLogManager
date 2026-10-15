@@ -54,3 +54,45 @@ OK cloud startup refuses missing database
 OK JDBC URL cannot override verified TLS
 OK Render GET health probe
 PASS SQL compatibility tests; live PostgreSQL/Neon still requires deployment test.
+OK embedded rounded font loaded
+OK label uses shared typeface
+OK password uses shared typeface
+OK dropdown uses shared typeface
+OK checkbox uses shared typeface
+OK original logo outlines loaded
+OK seven real menu buttons
+OK menu bounds: Home
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Catalogo
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Libreria
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Amici
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Statistiche
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Impostazioni
+OK menu tiles never overlap
+OK menu bounds: Esci
+OK menu actions include exit
+OK artwork raster matches display density
+OK artwork rounded corner remains transparent
+OK artwork content survives rounded mask
+OK IGDB high-resolution cover requested
+OK favorite rendered as vector icon, not missing font glyph
+PASS UI regressions

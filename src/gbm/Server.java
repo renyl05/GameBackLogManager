@@ -158,7 +158,7 @@ public final class Server implements AutoCloseable {
     while (db.rows("activities").size() > 2000) db.rows("activities").remove(0);
   }
   Map < String, Object > dispatch(String route, Map < String, Object > p, String token, String ip) throws Exception {
-    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.1", "mail", mailer.ready());
+    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.2", "mail", mailer.ready());
     if (route.equals("reset-request")) {
       rate(ip);
       if (! mailer.ready()) throw new IllegalStateException("Recupero password non disponibile: servizio email non configurato sul server.");
@@ -505,7 +505,7 @@ public final class Server implements AutoCloseable {
       Map < String, Object > g = map(o);
       String app = "" + Json.num(g, "appid"), gid = "steam:" + app;
       long minutes = Math.max(0, Json.num(g, "playtime_forever"));
-      if (db.find("games", "id", gid) == null) db.rows("games").add(Json.obj("id", gid, "steamApp", app, "name", s(g, "name"), "platforms", "Steam / PC", "genres", "", "cover", "https://cdn.akamai.steamstatic.com/steam/apps/" + app + "/library_600x900.jpg", "hero", "https://cdn.akamai.steamstatic.com/steam/apps/" + app + "/header.jpg", "summary", "Gioco importato dal tuo account Steam.", "source", "Steam"));
+      if (db.find("games", "id", gid) == null) db.rows("games").add(Json.obj("id", gid, "steamApp", app, "name", s(g, "name"), "platforms", "Steam / PC", "genres", "", "cover", "https://cdn.akamai.steamstatic.com/steam/apps/" + app + "/library_600x900.jpg", "hero", "https://cdn.akamai.steamstatic.com/steam/apps/" + app + "/library_hero.jpg", "summary", "Gioco importato dal tuo account Steam.", "source", "Steam"));
       Map < String, Object > snap = null;
       for (Object v : db.rows("snapshots")) {
         Map < String, Object > x = map(v);

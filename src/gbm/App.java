@@ -145,6 +145,7 @@ public final class App {
     }
     nav.add(links, BorderLayout.CENTER);
     JButton profile = button(s(m(state.get("me")), "username"), () -> settings());
+    String profileName=s(m(state.get("me")),"username");profile.setText(profileName.length()>1?profileName.substring(0,2).toUpperCase(Locale.ROOT):profileName.toUpperCase(Locale.ROOT));profile.setToolTipText(s(m(state.get("me")),"handle"));profile.setPreferredSize(new Dimension(52,52));profile.setBorder(new EmptyBorder(8,8,8,8));
     nav.add(profile, BorderLayout.EAST);
     root.add(nav, BorderLayout.NORTH);
     content = new RoundPanel(Color.WHITE, 34);
@@ -183,12 +184,9 @@ public final class App {
     form.setBorder(new EmptyBorder(28, 38, 28, 38));
     form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
     JTextField email = field("Email"), username = field("Nome utente");
-    JPasswordField pw = new JPasswordField(24), confirm = new JPasswordField(24);
-    for (JPasswordField f : List.of(pw, confirm)) {
-      f.setFont(font(16, false));
-      f.setBackground(LAV);
-      f.setBorder(new CompoundBorder(new LineBorder(LINE, 1, true), new EmptyBorder(12, 14, 12, 14)));
-    }
+    JPasswordField pw = passwordField(24), confirm = passwordField(24);
+    for(JPasswordField f:List.of(pw,confirm))styleInput(f);
+
     form.add(label(register ? "Crea il tuo account" : "Bentornato", 28, true));
     form.add(Box.createVerticalStrut(22));
     if (register) {
@@ -259,74 +257,13 @@ public final class App {
     page = "Menu";
     JPanel root = new JPanel(new BorderLayout());
     root.setBackground(PINK);
-    root.add(new OriginalMenu());
+    root.add(new NativeMenu(name->{if(name.equals("Esci"))frame.dispatchEvent(new WindowEvent(frame,WindowEvent.WINDOW_CLOSING));else navigate(name);}));
     status = muted(" ");
     frame.setContentPane(root);
     frame.revalidate();
     frame.repaint();
   }
-  class OriginalMenu extends JPanel {
-    BufferedImage image;
-    final List < JButton > buttons = new ArrayList < >();
-    final int [] [] rects = {
-      {
-        97, 250, 278, 453
-      }, {
-        396, 65, 277, 308
-      }, {
-        695, 65, 277, 308
-      }, {
-        994, 65, 277, 308
-      }, {
-        396, 396, 277, 307
-      }, {
-        695, 396, 277, 307
-      }, {
-        994, 396, 277, 307
-      }
-    };
-    OriginalMenu() {
-      setLayout(null);
-      setBackground(PINK);
-      try {
-        image = javax.imageio.ImageIO.read(Objects.requireNonNull(getClass().getResource("/menu-originale.png")));
-      } catch (Exception ignored) {
-      }
-      String [] names = {
-        "Home", "Catalogo", "Libreria", "Amici", "Statistiche", "Impostazioni", "Esci"
-      };
-      for (String name : names) {
-        JButton b = new JButton();
-        b.setOpaque(false);
-        b.setContentAreaFilled(false);
-        b.setBorderPainted(false);
-        b.setToolTipText(name);
-        b.getAccessibleContext().setAccessibleName(name);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.addActionListener(e -> {
-          if (name.equals("Esci")) frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-          else navigate(name);
-        });
-        buttons.add(b);
-        add(b);
-      }
-    }
-    public void doLayout() {
-      double z = Math.min(getWidth() / 1366.0, getHeight() / 768.0);
-      int ox =(int)((getWidth() - 1366 * z) / 2), oy =(int)((getHeight() - 768 * z) / 2);
-      for (int i = 0; i < rects.length; i ++) {
-        int [] r = rects [i];
-        buttons.get(i).setBounds(ox +(int)(r [0] * z), oy +(int)(r [1] * z), (int)(r [2] * z), (int)(r [3] * z));
-      }
-    }
-    protected void paintComponent(Graphics g) {
-      super.paintComponent(g);
-      if (image != null) {
-        double z = Math.min(getWidth() / 1366.0, getHeight() / 768.0);
-        g.drawImage(image, (int)((getWidth() - 1366 * z) / 2), (int)((getHeight() - 768 * z) / 2), (int)(1366 * z), (int)(768 * z), null);
-      }
-    }
-  }
+
   String stateName(String x) {
     return switch (x) {
       case "FINITO" -> "Finito";
@@ -398,7 +335,7 @@ public final class App {
     name.setBorder(new EmptyBorder(5, 2, 5, 2));
     name.setToolTipText(s(g, "name"));
     JButton heart = button(Json.yes(e, "favorite") ? "♥" : "♡", () -> saveEntry(g, s(e, "status"), ! Json.yes(e, "favorite"), e.get("rating"), () -> navigate(page)));
-    heart.setBorder(new EmptyBorder(4, 7, 4, 7));
+    heart.setBorder(new EmptyBorder(6, 7, 6, 7));
     JPanel line = new JPanel(new BorderLayout());
     line.setOpaque(false);
     line.add(name);
@@ -407,7 +344,7 @@ public final class App {
     bottom.setOpaque(false);
     bottom.add(line);
     if (personal) {
-      bottom.add(muted(stateName(s(e, "status")) +(e.get("rating") == null ? "" : "   ★ " + e.get("rating") + "/10")), BorderLayout.SOUTH);
+      bottom.add(muted(stateName(s(e, "status")) +(e.get("rating") == null ? "" : "   Voto " + e.get("rating") + "/10")), BorderLayout.SOUTH);
     }
     card.add(bottom, BorderLayout.SOUTH);
     return card;
@@ -476,9 +413,9 @@ public final class App {
       }));
       top.add(states);
     } else if (mode.equals("catalog")) {
-      top.add(row(button("Liste in evidenza", () -> lists()), button("Giochi in evidenza", () -> loadCatalog("", "featured", 0)), button("Retro", () -> loadCatalog("", "retro", 0))));
+      JPanel sections=row(button("Liste in evidenza",()->lists()),button("Giochi in evidenza",()->loadCatalog("","featured",0)),button("Retro",()->loadCatalog("","retro",0)));((FlowLayout)sections.getLayout()).setAlignment(FlowLayout.CENTER);top.add(sections);
       if (! Json.yes(state, "igdb")) top.add(muted("Catalogo originale: 5 giochi. Configura IGDB per ricerca completa, " + "immagini e piattaforme retro."));
-    } else top.add(button("← Catalogo", () -> catalog(false, "catalog", null)));
+    } else top.add(button("Torna al catalogo", () -> catalog(false, "catalog", null)));
     Runnable query =() -> {
       if (library || mode.equals("list") || provided != null && ! Json.yes(state, "igdb")) {
         refresh.run();
@@ -578,7 +515,7 @@ public final class App {
     JPanel all = col();
     all.add(new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 210));
     JPanel head = new JPanel(new BorderLayout(22, 5));
-    head.setOpaque(false);
+    head.setOpaque(false);head.setBorder(new EmptyBorder(0,0,8,0));
     head.add(new Art(s(g, "cover"), s(g, "name"), 165, 230), BorderLayout.WEST);
     JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), wrap(s(g, "summary"), 480));
     head.add(summary);
@@ -593,7 +530,7 @@ public final class App {
     JCheckBox heart = new JCheckBox("Preferito", Json.yes(e, "favorite"));
     heart.setOpaque(false);
     heart.setForeground(BLUE);
-    JSpinner rating = new JSpinner(new SpinnerNumberModel(e.get("rating") instanceof Number ?((Number) e.get("rating")).doubleValue() : 8.0, 0.0, 10.0, 0.5));
+    JSpinner rating = ratingSpinner(e.get("rating") instanceof Number ? ((Number)e.get("rating")).doubleValue() : 8.0);
     JCheckBox rated = new JCheckBox("Il tuo voto / 10", e.get("rating") != null);
     rated.setOpaque(false);
     rated.setForeground(BLUE);
@@ -613,7 +550,7 @@ public final class App {
     text.setBackground(LAV);
     text.setForeground(BLUE);
     text.setBorder(new EmptyBorder(12, 12, 12, 12));
-    reviewBox.add(new JScrollPane(text));
+    reviewBox.add(textBox(text));
     reviewBox.add(button("Pubblica / aggiorna", true, () -> mutate("review", obj("game", gid, "text", text.getText()), () -> detail(g))), BorderLayout.SOUTH);
     all.add(reviewBox);
     JPanel reviews = card();
@@ -627,7 +564,7 @@ public final class App {
       for (Object o : l(r.get("reviews"))) {
         Map < String, Object > v = m(o);
         if (s(v, "user").equals(uid())) text.setText(s(v, "text"));
-        JPanel review = col(label(s(v, "handle") +(v.get("rating") == null ? "" : "   ★ " + v.get("rating") + " / 10"), 15, true), wrap(s(v, "text"), 820));
+        JPanel review = col(label(s(v, "handle") +(v.get("rating") == null ? "" : "   Voto " + v.get("rating") + " / 10"), 15, true), wrap(s(v, "text"), 820));
         if (! s(v, "user").equals(uid())) review.add(row(button("Like " + Json.num(v, "likes"), () -> mutate("vote", obj("review", v.get("id"), "value", Json.num(v, "myVote") == 1 ? 0 : 1), () -> detail(g))), button("Dislike " + Json.num(v, "dislikes"), () -> mutate("vote", obj("review", v.get("id"), "value", Json.num(v, "myVote") == - 1 ? 0 : - 1), () -> detail(g)))));
         reviewList.add(review);
       }
@@ -695,7 +632,7 @@ public final class App {
       shell("Amici");
       Map < String, Object > u = m(r.get("user"));
       title(s(u, "handle"));
-      JPanel body = col(row(button("Confronta statistiche e trofei", true, () -> compare(target)), button("← Amici", () -> friends())));
+      JPanel body = col(row(button("Confronta statistiche e trofei", true, () -> compare(target)), button("Torna agli amici", () -> friends())));
       if (! Json.yes(r, "visible")) body.add(label("Questa libreria è privata", 20, true));
       else {
         List < Map < String, Object >> items = l(r.get("entries")).stream().map(Json::map).filter(e -> Set.of("FINITO", "IN_CORSO").contains(s(e, "status"))).map(e -> game(s(e, "game"))).toList();
@@ -879,10 +816,10 @@ public final class App {
       for (Object o : l(r.get("achievements"))) {
         Map < String, Object > a = m(o);
         if (Json.yes(a, "unlocked")) unlocked ++;
-        String marker = Json.yes(a, "unlocked") ? "✓ Ottenuto" : "○ Da sbloccare";
+        String marker = Json.yes(a, "unlocked") ? "Ottenuto" : "Da sbloccare";
         if (other != null) {
           Map < String, Object > b = compare.get(s(a, "id"));
-          marker = "Tu: " +(Json.yes(a, "unlocked") ? "✓" : "○") + "    Altro: " +(b == null ? "Non disponibile" : Json.yes(b, "unlocked") ? "✓" : "○");
+          marker = "Tu: " +(Json.yes(a, "unlocked") ? "Ottenuto" : "Da sbloccare") + "    Altro: " +(b == null ? "Non disponibile" : Json.yes(b, "unlocked") ? "Ottenuto" : "Da sbloccare");
         }
         JPanel row = col(label(s(a, "name"), 16, true), wrap(s(a, "description"), 620), muted(marker));
         body.add(row);
@@ -1075,7 +1012,7 @@ public final class App {
     if (JOptionPane.showConfirmDialog(frame, col(label("Email dell'account", 14, true), email), "Recupero password", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION) return;
     work("Invio del codice…", () -> api.call("reset-request", obj("email", email.getText())), r -> {
       JTextField code = field("Codice ricevuto");
-      JPasswordField pw = new JPasswordField(24), confirm = new JPasswordField(24);
+      JPasswordField pw = passwordField(24), confirm = passwordField(24);
       JPanel p = col(wrap(s(r, "message"), 350), label("Codice ricevuto per email", 14, true), code, label("Nuova password (almeno 10 caratteri)", 14, true), pw, label("Conferma password", 14, true), confirm);
       if (JOptionPane.showConfirmDialog(frame, p, "Reimposta password", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
         if (! Arrays.equals(pw.getPassword(), confirm.getPassword())) {
@@ -1087,7 +1024,7 @@ public final class App {
     });
   }
   void password() {
-    JPasswordField old = new JPasswordField(22), next = new JPasswordField(22), confirm = new JPasswordField(22);
+    JPasswordField old = passwordField(22), next = passwordField(22), confirm = passwordField(22);
     JPanel p = col(label("Password attuale", 14, true), old, label("Nuova password (almeno 10 caratteri)", 14, true), next, label("Conferma nuova password", 14, true), confirm);
     if (JOptionPane.showConfirmDialog(frame, p, "Cambia password", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
       if (! Arrays.equals(next.getPassword(), confirm.getPassword())) {

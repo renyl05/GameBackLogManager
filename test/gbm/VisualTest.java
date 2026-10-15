@@ -63,8 +63,9 @@ public class VisualTest {
     SwingUtilities.invokeAndWait(() -> {
       try {
         app.frame.validate();
-        BufferedImage im = new BufferedImage(app.frame.getWidth(), app.frame.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = im.createGraphics();
+        double density=Double.parseDouble(System.getProperty("gbm.qa.scale","1"));
+        BufferedImage im = new BufferedImage((int)(app.frame.getWidth()*density), (int)(app.frame.getHeight()*density), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = im.createGraphics();g.scale(density,density);
         app.frame.paint(g);
         g.dispose();
         ImageIO.write(im, "png", p.toFile());
