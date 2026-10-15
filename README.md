@@ -1,4 +1,4 @@
-# Game Backlog Manager · 2.2 beta
+# Game Backlog Manager · 2.3 beta
 
 App desktop Java 17 con backend account e social.
 
@@ -16,8 +16,12 @@ Per il servizio cloud usare il Dockerfile, che avvia `gbm.Server` senza GUI. Nes
 
 ## Stato
 
-Catalogo esteso IGDB, Steam e posta richiedono configurazione. PlayStation/Xbox/Nintendo non sono integrati. I test dei provider usano risposte simulate; i test SQL usano H2 in modalità PostgreSQL, senza connessione a un database Neon reale.
+Catalogo esteso IGDB, Steam e posta richiedono configurazione. PlayStation/Xbox/Nintendo non sono integrati. I test dei provider usano risposte simulate; i test SQL usano H2 in modalità PostgreSQL, con un controllo separato del backend pubblicato su Render e dello storage Neon.
 
 ## Interfaccia aggiornata
 
 [Dettagli e schermate reali](docs/INTERFACCIA.md). Logo originale, tipografia incorporata e controlli coerenti, menu nativo e rendering HiDPI. Per configurare il servizio locale, copia `server.properties.example` in `server.properties` e modifica soltanto la copia locale.
+
+## Server condiviso
+
+Avvia `AVVIA-CLIENT-REMOTO.bat` e inserisci `https://gamebacklogmanager.onrender.com`. Il backend usa Neon PostgreSQL; IGDB, Steam e posta richiedono ancora le chiavi dei rispettivi account.

@@ -34,6 +34,8 @@ public class VisualTest {
         app [0].frame.setVisible(true);
       });
       capture(app [0], out.resolve("accesso.png"));
+      SwingUtilities.invokeAndWait(()->app[0].auth(true));
+      capture(app[0],out.resolve("registrazione.png"));
       SwingUtilities.invokeAndWait(() -> {
         app [0].state = state;
         app [0].menu();
@@ -42,6 +44,7 @@ public class VisualTest {
       for (String name : List.of("Home", "Catalogo", "Libreria", "Amici", "Statistiche", "Impostazioni")) {
         SwingUtilities.invokeAndWait(() -> app [0].navigate(name));
         capture(app [0], out.resolve(name.toLowerCase() + ".png"));
+        if(name.equals("Statistiche")||name.equals("Impostazioni")){bottom(app[0]);capture(app[0],out.resolve(name.toLowerCase()+"-bottom.png"));}
       }
       SwingUtilities.invokeAndWait(() -> {
         app [0].frame.setSize(1100, 760);
@@ -54,10 +57,12 @@ public class VisualTest {
       });
       Thread.sleep(1000);
       capture(app [0], out.resolve("gioco.png"));
+      bottom(app[0]);capture(app[0],out.resolve("gioco-bottom.png"));
       SwingUtilities.invokeAndWait(() -> app [0].frame.dispose());
     }
     System.exit(0);
   }
+  static void bottom(App app)throws Exception{SwingUtilities.invokeAndWait(()->{for(Component c:app.content.getComponents())if(c instanceof JScrollPane sc)sc.getVerticalScrollBar().setValue(sc.getVerticalScrollBar().getMaximum());});}
   static void capture(App app, Path p) throws Exception {
     Thread.sleep(150);
     SwingUtilities.invokeAndWait(() -> {

@@ -66,6 +66,7 @@ public final class App {
   }
   static JTextArea wrap(String text, int width) {
     JTextArea area = new JTextArea(text) {
+      protected void paintComponent(Graphics g){Graphics2D a=quality(g);super.paintComponent(a);a.dispose();}
       @Override public Dimension getPreferredSize() {
         int w = getWidth()>20?Math.min(width,getWidth()):width;
         FontMetrics metrics=getFontMetrics(getFont());int lines=0;
@@ -144,9 +145,10 @@ public final class App {
       links.add(b);
     }
     nav.add(links, BorderLayout.CENTER);
-    JButton profile = button(s(m(state.get("me")), "username"), () -> settings());
+    JButton profile = avatar(s(m(state.get("me")), "username"), () -> settings());
     String profileName=s(m(state.get("me")),"username");profile.setText(profileName.length()>1?profileName.substring(0,2).toUpperCase(Locale.ROOT):profileName.toUpperCase(Locale.ROOT));profile.setToolTipText(s(m(state.get("me")),"handle"));profile.setPreferredSize(new Dimension(52,52));profile.setBorder(new EmptyBorder(8,8,8,8));
-    nav.add(profile, BorderLayout.EAST);
+    JPanel avatarHolder=new JPanel(new GridBagLayout());avatarHolder.setOpaque(false);avatarHolder.setName("avatar");avatarHolder.add(profile);
+    nav.add(avatarHolder, BorderLayout.EAST);
     root.add(nav, BorderLayout.NORTH);
     content = new RoundPanel(Color.WHITE, 34);
     content.setBorder(new EmptyBorder(22, 24, 22, 24));
@@ -183,6 +185,7 @@ public final class App {
     JPanel form = new RoundPanel(Color.WHITE, 36);
     form.setBorder(new EmptyBorder(28, 38, 28, 38));
     form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+    form.setPreferredSize(new Dimension(500,register?612:470));
     JTextField email = field("Email"), username = field("Nome utente");
     JPasswordField pw = passwordField(24), confirm = passwordField(24);
     for(JPasswordField f:List.of(pw,confirm))styleInput(f);
@@ -201,8 +204,8 @@ public final class App {
     form.add(label("Password", 14, true));
     form.add(pw);
     form.add(Box.createVerticalStrut(10));
-    JCheckBox show = new JCheckBox("Mostra password");
-    show.setOpaque(false);
+    JCheckBox show = new StyledCheckBox("Mostra password");
+    show.setOpaque(false);show.setBorder(new EmptyBorder(0,0,0,0));
     show.setForeground(BLUE);
     char echo = pw.getEchoChar();
     show.addActionListener(e -> {
@@ -233,8 +236,9 @@ public final class App {
     });
     form.add(submit);
     form.add(Box.createVerticalStrut(12));
-    if (! register) form.add(button("Password dimenticata?", () -> resetPassword(email.getText())));
+    if (! register) {form.add(button("Password dimenticata?", () -> resetPassword(email.getText())));form.add(Box.createVerticalStrut(12));}
     form.add(button(register ? "Hai già un account? Accedi" : "Non hai un account? Registrati", () -> auth(! register)));
+    for(Component child:form.getComponents())if(child instanceof JComponent j)j.setAlignmentX(Component.LEFT_ALIGNMENT);
     JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
     logoRow.setOpaque(false);
     logoRow.add(new Logo(225));
@@ -332,7 +336,7 @@ public final class App {
     JButton name = button(s(g, "name"), () -> detail(g));
     name.setContentAreaFilled(false);
     name.setHorizontalAlignment(SwingConstants.LEFT);
-    name.setBorder(new EmptyBorder(5, 2, 5, 2));
+    name.setBorder(new EmptyBorder(8, 10, 8, 10));
     name.setToolTipText(s(g, "name"));
     JButton heart = button(Json.yes(e, "favorite") ? "♥" : "♡", () -> saveEntry(g, s(e, "status"), ! Json.yes(e, "favorite"), e.get("rating"), () -> navigate(page)));
     heart.setBorder(new EmptyBorder(6, 7, 6, 7));
@@ -369,7 +373,7 @@ public final class App {
     JComboBox < String > genre = combo(new String [] {
       "Tutti i generi", "Azione", "Avventura", "RPG", "GDR", "Sandbox", "Platform", "Strategy", "Puzzle"
     });
-    JCheckBox favorite = new JCheckBox("Solo preferiti");
+    JCheckBox favorite = new StyledCheckBox("Solo preferiti");
     favorite.setOpaque(false);
     favorite.setForeground(BLUE);
     JPanel filter = col(platform, genre, favorite);
@@ -513,11 +517,17 @@ public final class App {
     String gid = s(g, "id");
     Map < String, Object > e = entry(gid);
     JPanel all = col();
-    all.add(new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 210));
+    Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 250);banner.setMaximumSize(new Dimension(Integer.MAX_VALUE,250));
+    all.add(banner);
     JPanel head = new JPanel(new BorderLayout(22, 5));
-    head.setOpaque(false);head.setBorder(new EmptyBorder(0,0,8,0));
-    head.add(new Art(s(g, "cover"), s(g, "name"), 165, 230), BorderLayout.WEST);
-    JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), wrap(s(g, "summary"), 480));
+    head.setOpaque(false);head.setBorder(new EmptyBorder(12,0,12,0));
+    JComboBox<String> edition=combo(s(g,"platforms").isBlank()?new String[]{"Piattaforma non specificata"}:s(g,"platforms").split(", "));
+    Art cover=new Art(s(g,"cover"),s(g,"name"),180,coverHeight(180,edition.getSelectedItem().toString()));
+    cover.contain=true;
+    JPanel coverHolder=new JPanel(new BorderLayout());coverHolder.setOpaque(false);coverHolder.add(cover,BorderLayout.NORTH);
+    head.add(coverHolder,BorderLayout.WEST);
+    edition.addActionListener(ev->{cover.setPreferredSize(new Dimension(180,coverHeight(180,edition.getSelectedItem().toString())));head.revalidate();});
+    JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), label("Edizione / formato della copertina",14,true),edition,wrap(s(g, "summary"), 480));
     head.add(summary);
     String [] st = {
       "Non in libreria", "In corso", "Finito", "Da giocare", "Desiderato"
@@ -527,11 +537,11 @@ public final class App {
     JComboBox < String > statusBox = combo(st);
     int index = Arrays.asList(codes).indexOf(s(e, "status"));
     statusBox.setSelectedIndex(Math.max(0, index));
-    JCheckBox heart = new JCheckBox("Preferito", Json.yes(e, "favorite"));
+    JCheckBox heart = new StyledCheckBox("Preferito", Json.yes(e, "favorite"));
     heart.setOpaque(false);
     heart.setForeground(BLUE);
     JSpinner rating = ratingSpinner(e.get("rating") instanceof Number ? ((Number)e.get("rating")).doubleValue() : 8.0);
-    JCheckBox rated = new JCheckBox("Il tuo voto / 10", e.get("rating") != null);
+    JCheckBox rated = new StyledCheckBox("Il tuo voto / 10", e.get("rating") != null);
     rated.setOpaque(false);
     rated.setForeground(BLUE);
     JPanel controls = col(row(button("+ Libreria", true, () -> saveEntry(g, "IN_CORSO", heart.isSelected(), rated.isSelected() ? rating.getValue() : null, () -> detail(g))), heart), label("Stato", 14, true), statusBox, row(rated, rating), button("Salva", true, () -> saveEntry(g, codes [statusBox.getSelectedIndex()], heart.isSelected(), rated.isSelected() ? rating.getValue() : null, () -> detail(g))));
@@ -539,7 +549,7 @@ public final class App {
     controls.add(muted(hours == null ? "Ore giocate: Non disponibile" : String.format(Locale.ITALY, "Steam · %.1f ore", Json.num(hours, "minutes") / 60.0)));
     if (! s(g, "steamApp").isBlank()) controls.add(button("Trofei / obiettivi Steam", () -> achievements(g, uid(), null)));
     else controls.add(muted("Trofei: nessun ID piattaforma collegato"));
-    controls.setPreferredSize(new Dimension(330, 320));
+    controls.setPreferredSize(new Dimension(330, Math.max(320,controls.getPreferredSize().height)));
     head.add(controls, BorderLayout.EAST);
     all.add(head);
     JPanel reviewBox = card();
@@ -551,7 +561,7 @@ public final class App {
     text.setForeground(BLUE);
     text.setBorder(new EmptyBorder(12, 12, 12, 12));
     reviewBox.add(textBox(text));
-    reviewBox.add(button("Pubblica / aggiorna", true, () -> mutate("review", obj("game", gid, "text", text.getText()), () -> detail(g))), BorderLayout.SOUTH);
+    reviewBox.add(actionRow(button("Pubblica / aggiorna", true, () -> mutate("review", obj("game", gid, "text", text.getText()), () -> detail(g)))), BorderLayout.SOUTH);
     all.add(reviewBox);
     JPanel reviews = card();
     reviews.add(label("Recensioni della community", 20, true), BorderLayout.NORTH);
@@ -572,6 +582,20 @@ public final class App {
       reviewList.revalidate();
       frame.repaint();
     });
+  }
+  static int coverHeight(int width,String platform){
+    String p=platform.toLowerCase(Locale.ROOT);
+    // Case aspect ratios vary by edition; these are platform defaults, not claims about a specific release.
+    double ratio;
+    if(p.contains("switch"))ratio=104d/170;
+    else if(p.contains("3ds")||p.contains("nintendo ds"))ratio=135d/122;
+    else if(p.equals("playstation")||p.contains("dreamcast")||p.contains("music cd"))ratio=142d/125;
+    else if(p.contains("game boy"))ratio=1;
+    else if(p.contains("super nintendo")||p.contains("snes")||p.contains("nintendo 64"))ratio=1.4;
+    else if(p.contains("nintendo entertainment")||p.equals("nes"))ratio=128d/178;
+    else if(p.contains("playstation 2")||p.contains("wii")||p.contains("gamecube")||p.contains("xbox"))ratio=135d/190;
+    else ratio=135d/170;
+    return (int)Math.round(width/ratio);
   }
   Map < String, Object > steamHours(String gid, List < Map < String, Object >> links) {
     for (Map < String, Object > link : links) for (Object o : l(link.get("games"))) if (s(m(o), "game").equals(gid)) return m(o);
@@ -739,14 +763,14 @@ public final class App {
         return;
       }
       JPanel filters = row(label("Piattaforme e console", 16, true));
-      JCheckBox allPlatforms = new JCheckBox("Tutte", true), steam = new JCheckBox("Steam", true);
+      JCheckBox allPlatforms = new StyledCheckBox("Tutte", true), steam = new StyledCheckBox("Steam", true);
       for (JCheckBox c : List.of(allPlatforms, steam)) {
         c.setOpaque(false);
         c.setForeground(BLUE);
         filters.add(c);
       }
       for (String name : List.of("PS5", "PS4", "Xbox")) {
-        JCheckBox c = new JCheckBox(name);
+        JCheckBox c = new StyledCheckBox(name);
         c.setOpaque(false);
         c.setEnabled(false);
         c.setToolTipText("Integrazione non disponibile in questa versione");
@@ -912,7 +936,7 @@ public final class App {
   }
   void createList() {
     JTextField title = field("Titolo della lista");
-    JCheckBox publicList = new JCheckBox("Rendi pubblica questa lista");
+    JCheckBox publicList = new StyledCheckBox("Rendi pubblica questa lista");
     publicList.setOpaque(false);
     List < Map < String, Object >> games = rows("games");
     DefaultListModel < String > model = new DefaultListModel < >();
@@ -942,7 +966,7 @@ public final class App {
       "Privata", "Solo amici", "Pubblica"
     });
     visibility.setSelectedIndex(s(me, "visibility").equals("friends") ? 1 : s(me, "visibility").equals("public") ? 2 : 0);
-    JCheckBox stats = new JCheckBox("Condividi statistiche", Json.yes(me, "shareStats")), trophies = new JCheckBox("Condividi trofei", Json.yes(me, "shareTrophies")), activity = new JCheckBox("Mostra attività agli amici", Json.yes(me, "shareActivity"));
+    JCheckBox stats = new StyledCheckBox("Condividi statistiche", Json.yes(me, "shareStats")), trophies = new StyledCheckBox("Condividi trofei", Json.yes(me, "shareTrophies")), activity = new StyledCheckBox("Mostra attività agli amici", Json.yes(me, "shareActivity"));
     for (JCheckBox c : List.of(stats, trophies, activity)) {
       c.setOpaque(false);
       c.setForeground(BLUE);
@@ -983,7 +1007,7 @@ public final class App {
       "Standard", "Grande"
     });
     size.setSelectedIndex(Theme.scale > 1 ? 1 : 0);
-    JCheckBox contrast = new JCheckBox("Contrasto elevato", Theme.contrast);
+    JCheckBox contrast = new StyledCheckBox("Contrasto elevato", Theme.contrast);
     contrast.setOpaque(false);
     accessibility.add(col(label("Lingua", 14, true), lang, label("Dimensione testo", 14, true), size, contrast, muted("L'interfaccia non usa animazioni."), button("Applica", true, () -> {
       Theme.scale = size.getSelectedIndex() == 1 ? 1.15f : 1;

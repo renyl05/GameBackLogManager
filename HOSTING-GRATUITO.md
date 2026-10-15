@@ -1,6 +1,6 @@
 # Pubblicazione gratuita: Render + Neon
 
-Questa versione **2.1 beta** include l'adattamento per ospitare il server Java su Render Free, conservando i dati su Neon Free. Non è ancora pubblicata: servono i tuoi account. La grafica e i tuoi sorgenti originali sono conservati.
+Questa versione **2.3 beta** include l'adattamento per ospitare il server Java su Render Free, conservando i dati su Neon Free. Il backend è pubblicato su https://gamebacklogmanager.onrender.com con database Neon. Le istruzioni seguenti servono anche per ricreare l’infrastruttura. La grafica e i tuoi sorgenti originali sono conservati.
 
 ## Prima di cominciare
 

@@ -46,20 +46,17 @@ OK achievement cache persisted
 OK provider counter reset does not create negative hours
 OK unlink removes imported data and observations
 PASS provider fixture tests (no live credentials used)
-OK SQL snapshot survives new store instance
-OK remote persistence never writes local fallback
-OK stale writer cannot overwrite remote snapshot
-OK conflicting writer leaves stored data intact
-OK cloud startup refuses missing database
-OK JDBC URL cannot override verified TLS
-OK Render GET health probe
-PASS SQL compatibility tests; live PostgreSQL/Neon still requires deployment test.
 OK embedded rounded font loaded
 OK label uses shared typeface
 OK password uses shared typeface
 OK dropdown uses shared typeface
 OK checkbox uses shared typeface
-OK original logo outlines loaded
+OK original raster logo loaded
+OK appended action keeps vertical gap
+OK appended action aligns with label
+OK action does not stretch
+OK Switch and DS use distinct physical case ratios
+OK DVD and jewel case ratios differ
 OK seven real menu buttons
 OK menu bounds: Home
 OK menu tiles never overlap
@@ -96,3 +93,11 @@ OK artwork content survives rounded mask
 OK IGDB high-resolution cover requested
 OK favorite rendered as vector icon, not missing font glyph
 PASS UI regressions
+OK SQL snapshot survives new store instance
+OK remote persistence never writes local fallback
+OK stale writer cannot overwrite remote snapshot
+OK conflicting writer leaves stored data intact
+OK cloud startup refuses missing database
+OK JDBC URL cannot override verified TLS
+OK Render GET health probe
+PASS SQL compatibility tests; live PostgreSQL/Neon still requires deployment test.
