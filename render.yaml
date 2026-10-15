@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gamebacklogmanager
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: BIND_HOST
+        value: 0.0.0.0
+      - key: REQUIRE_DATABASE
+        value: "true"
+      - key: JDBC_DATABASE_URL
+        sync: false
+      - key: JDBC_DATABASE_USER
+        sync: false
+      - key: JDBC_DATABASE_PASSWORD
+        sync: false

@@ -1,0 +1,56 @@
+OK server health
+OK anonymous access rejected
+OK unique user IDs
+OK private by default
+OK password hash never sent
+OK favorite independent of library
+OK invalid rating rejected
+OK own review vote rejected
+OK single vote per user and replacement
+OK voter identities not leaked
+OK private library hidden server-side
+OK sender cannot accept own request
+OK friend acceptance
+OK friend-only library and comparison permitted
+OK trophy sharing does not leak hours or provider ID
+OK stats sharing does not leak trophies
+OK private trophies blocked
+OK private list hidden
+OK public list visible
+OK unconfigured provider explicit error
+OK unconfigured Steam explicit error
+OK logout revokes token
+OK old password invalidated
+OK export excludes credentials
+OK persistent store reload
+OK password not stored in plaintext
+OK invalid OpenID callback rejected
+OK unconfigured SMTP explicit error
+OK wrong reset code rejected
+OK password reset revokes sessions
+OK reset code single use
+OK JSON roundtrip
+PASS 32 checks
+OK IGDB bearer authentication
+OK IGDB stable ID
+OK retro platform metadata
+OK IGDB image URL
+OK IGDB query escaping, paging and retro filter
+OK Steam library response
+OK Steam schema and player achievements merged
+OK HTTPS email provider configured without SMTP
+OK Brevo API key header
+OK first sync excludes historical hours
+OK subsequent sync measures observed delta
+OK achievement cache persisted
+OK provider counter reset does not create negative hours
+OK unlink removes imported data and observations
+PASS provider fixture tests (no live credentials used)
+OK SQL snapshot survives new store instance
+OK remote persistence never writes local fallback
+OK stale writer cannot overwrite remote snapshot
+OK conflicting writer leaves stored data intact
+OK cloud startup refuses missing database
+OK JDBC URL cannot override verified TLS
+OK Render GET health probe
+PASS SQL compatibility tests; live PostgreSQL/Neon still requires deployment test.

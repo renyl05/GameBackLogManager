@@ -1,0 +1,8 @@
+server.properties
+.env
+.env.*
+data/
+build/
+sources.txt
+testsources.txt
+*.log

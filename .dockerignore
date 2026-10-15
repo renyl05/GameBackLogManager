@@ -1,0 +1,8 @@
+**
+!src/
+!src/**
+!resources/
+!resources/**
+!lib/
+!lib/postgresql.jar
+!Dockerfile
