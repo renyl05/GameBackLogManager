@@ -56,6 +56,18 @@ OK public profile exposes actual owned editions
 OK editions survive restart
 OK legacy multi-platform ownership is not guessed
 PASS edition persistence and privacy
+OK owner sees private and public lists
+OK visitor only sees public lists
+OK private favorites and ownership stay private
+OK public bio available on profile
+OK profile excludes credentials
+OK invalid age rejected
+OK invalid profile does not partially change bio
+OK username-only update preserves profile fields
+OK public favorites include games outside library
+OK profile update cannot impersonate another user
+OK profile survives restart
+PASS profile validation, privacy and persistence
 OK embedded rounded font loaded
 OK label uses shared typeface
 OK password uses shared typeface
@@ -103,6 +115,8 @@ OK artwork content survives rounded mask
 OK IGDB high-resolution cover requested
 OK favorite rendered as vector icon, not missing font glyph
 PASS UI regressions
+PASS complete action captions: Metal; text 100/115%; density 100/125/150/200%
+PASS complete action captions: Nimbus; text 100/115%; density 100/125/150/200%
 OK SQL snapshot survives new store instance
 OK remote persistence never writes local fallback
 OK stale writer cannot overwrite remote snapshot
@@ -111,3 +125,11 @@ OK cloud startup refuses missing database
 OK JDBC URL cannot override verified TLS
 OK Render GET health probe
 PASS SQL compatibility tests; live PostgreSQL/Neon still requires deployment test.
+
+Verifiche visuali Linux / Java 17:
+PASS edition popup switching keeps EDT responsive
+PASS logo artwork returns to initial menu
+PASS late network callback cannot override logo navigation
+PASS demo opens isolated local server without modifying original account
+
+Entrambe le palette verificate con schermate. Backend Render live 2.6; IGDB, Steam e posta non configurati.
