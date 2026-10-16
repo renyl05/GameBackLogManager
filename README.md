@@ -1,10 +1,10 @@
-# Game Backlog Manager · 2.4 beta
+# Game Backlog Manager · 2.5 beta
 
 App desktop Java 17 con backend account e social.
 
 ## Pubblicazione gratuita
 
-Il progetto è predisposto per Render Free + Neon Free. Leggi [HOSTING-GRATUITO.md](HOSTING-GRATUITO.md). Il backend non è ancora pubblicato.
+Il progetto è predisposto per Render Free + Neon Free. Leggi [HOSTING-GRATUITO.md](HOSTING-GRATUITO.md). Il backend è pubblicato su Render e usa Neon PostgreSQL.
 
 ## Compilazione
 
@@ -31,3 +31,9 @@ Avvia `AVVIA-CLIENT-REMOTO.bat` e inserisci `https://gamebacklogmanager.onrender
 Edizioni possedute e stati per piattaforma, marker nel catalogo e nel selettore delle edizioni, filtri del profilo sulle piattaforme effettivamente possedute. Il voto e i preferiti restano globali al gioco. I dati precedenti multipiattaforma vengono conservati come Edizione non specificata, senza attribuzioni automatiche.
 
 Dalla registrazione puoi scegliere Prova senza account: apre una demo locale con dati temporanei, isolata dal server remoto. Modalità scura verde/oro in Impostazioni, disattivata inizialmente, e comando Esci nella barra superiore.
+
+## Correzioni 2.5
+
+Pulsanti misurati e disegnati con lo stesso metodo in tutte le pagine, per evitare il troncamento introdotto nella 2.4. Simbolo Statistiche ridisegnato interamente. Scheda gioco ricostruita dalla prima bozza approvata: banner con copertina sovrapposta, comandi laterali, dieci cerchi per il voto, recensioni e attività affiancate. Tema scuro aggiornato come anteprima smeraldo/oro con bordi sottili, selezionabile in Impostazioni.
+
+Verifica automatica con Metal e Nimbus e diverse scale; schermate del programma su Linux. Da confermare sul computer Windows dell'utente.

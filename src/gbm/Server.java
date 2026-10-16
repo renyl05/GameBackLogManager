@@ -158,7 +158,7 @@ public final class Server implements AutoCloseable {
     while (db.rows("activities").size() > 2000) db.rows("activities").remove(0);
   }
   Map < String, Object > dispatch(String route, Map < String, Object > p, String token, String ip) throws Exception {
-    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.4", "mail", mailer.ready());
+    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.5", "mail", mailer.ready());
     if (route.equals("reset-request")) {
       rate(ip);
       if (! mailer.ready()) throw new IllegalStateException("Recupero password non disponibile: servizio email non configurato sul server.");

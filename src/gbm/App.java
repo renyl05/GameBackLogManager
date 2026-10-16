@@ -370,7 +370,7 @@ public final class App {
     mutate("entry", obj("game", g.get("id"), "status", status, "favorite", favorite, "rating", rating), next);
   }
   void saveEdition(Map<String,Object> game,String platform,String status,boolean favorite,Object rating,Runnable next){mutate("entry",obj("game",game.get("id"),"platform",platform,"status",status,"favorite",favorite,"rating",rating),next);}
-  JPanel ratingPicker(JCheckBox enabled,JSpinner value){return col(enabled,new RatingStars(value,enabled),actionRow(muted("Voto / 10"),value));}
+  JPanel ratingPicker(JCheckBox enabled,JSpinner value){return col(enabled,new RatingDots(value,enabled),actionRow(muted("Voto / 10"),value));}
   void catalog(boolean library, String mode, List < Map < String, Object >> provided) {
     shell(library ? "Libreria" : "Catalogo");
     JPanel top = col();
@@ -535,20 +535,14 @@ public final class App {
     if(!Arrays.asList(available).contains(selectedEdition))selectedEdition=available[0];
     final String platformEdition=selectedEdition;
     JPanel all = col();
-    Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 250);banner.setMaximumSize(new Dimension(Integer.MAX_VALUE,250));
-    all.add(banner);
-    JPanel head = new JPanel(new BorderLayout(22, 5));
-    head.setOpaque(false);head.setBorder(new EmptyBorder(12,0,12,0));
+    Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 230);
     JComboBox<String> edition=combo(available);
     edition.setSelectedItem(platformEdition);
     edition.setRenderer(new DefaultListCellRenderer(){public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean chosen,boolean focus){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,chosen,focus);label.setFont(font(14,false));String platform=Objects.toString(value);label.setText(platform+(owns(e,platform)?" · Posseduto":editionStatus(e,platform).isBlank()?"":" · "+stateName(editionStatus(e,platform))));label.setBorder(new EmptyBorder(7,10,7,10));label.setBackground(chosen?LAV:SURFACE);label.setForeground(INK);return label;}});
-    Art cover=new Art(s(g,"cover"),s(g,"name"),180,coverHeight(180,edition.getSelectedItem().toString()));
-    cover.contain=true;
-    JPanel coverHolder=new JPanel(new BorderLayout());coverHolder.setOpaque(false);coverHolder.add(cover,BorderLayout.NORTH);
-    head.add(coverHolder,BorderLayout.WEST);
+    Art cover=new Art(s(g,"cover"),s(g,"name"),174,coverHeight(174,platformEdition));cover.contain=true;
+    JPanel coverHolder=new RoundPanel(SURFACE,20);coverHolder.setLayout(new BorderLayout());coverHolder.setBorder(new EmptyBorder(6,6,6,6));coverHolder.add(cover);
     edition.addActionListener(ev->{selectedEdition=edition.getSelectedItem().toString();detail(g);});
-    JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), label("Edizione / formato della copertina",14,true),edition,wrap(s(g, "summary"), 480));
-    head.add(summary);
+    JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "genres")),wrap(s(g, "summary"), 390));
     String [] st = {
       "Non in libreria", "In corso", "Finito", "Da giocare", "Desiderato"
     }, codes = {
@@ -564,30 +558,24 @@ public final class App {
     JCheckBox rated = new StyledCheckBox("Il tuo voto / 10", e.get("rating") != null);
     rated.setOpaque(false);
     rated.setForeground(BLUE);
-    JPanel controls = col(actionRow(button(owns(e,platformEdition)?"Edizione in libreria":"+ Libreria", true, () -> {if(!owns(e,platformEdition))saveEdition(g,platformEdition,"IN_CORSO",heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g));}), heart), label("Stato", 14, true), statusBox, ratingPicker(rated,rating), button("Salva", true, () -> saveEdition(g,platformEdition,codes[statusBox.getSelectedIndex()],heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g))));
+    JPanel controls = col(actionRow(button(owns(e,platformEdition)?"In libreria":"+ Libreria", true, () -> {if(!owns(e,platformEdition))saveEdition(g,platformEdition,"IN_CORSO",heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g));}),heart,statusBox),label("Edizione",13,true),edition);
+    JPanel votePanel=new RoundPanel(LAV,18);votePanel.setLayout(new BorderLayout(8,4));votePanel.setBorder(new EmptyBorder(10,12,10,12));votePanel.add(rated,BorderLayout.NORTH);votePanel.add(new RatingDots(rating,rated));votePanel.add(rating,BorderLayout.EAST);controls.add(votePanel);
+    controls.add(actionRow(button("Salva",true,()->saveEdition(g,platformEdition,codes[statusBox.getSelectedIndex()],heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g)))));
     Map < String, Object > hours = steamHours(gid, rows("links"));
     controls.add(muted(hours == null ? "Ore giocate: Non disponibile" : String.format(Locale.ITALY, "Steam · %.1f ore", Json.num(hours, "minutes") / 60.0)));
     if (! s(g, "steamApp").isBlank()) controls.add(button("Trofei / obiettivi Steam", () -> achievements(g, uid(), null)));
     else controls.add(muted("Trofei: nessun ID piattaforma collegato"));
-    controls.setPreferredSize(new Dimension(330, Math.max(320,controls.getPreferredSize().height)));
-    head.add(controls, BorderLayout.EAST);
-    all.add(head);
+    // The cover intentionally overlaps the banner, with an independent title column below it.
+    JPanel head=new JPanel(null){public Dimension getPreferredSize(){int w=getWidth()>0?getWidth():1200;boolean narrow=w<1050;int h=Math.max(coverHeight(174,platformEdition)+112,250+Math.max(summary.getPreferredSize().height,controls.getPreferredSize().height));return new Dimension(1000,narrow?250+Math.max(coverHeight(174,platformEdition),summary.getPreferredSize().height)+controls.getPreferredSize().height+28:h+16);}public void doLayout(){int w=getWidth();boolean narrow=w<1050;banner.setBounds(0,0,w,230);coverHolder.setBounds(20,108,186,coverHeight(174,platformEdition)+12);int controlW=Math.min(440,Math.max(390,(int)(w*.37)));int summaryW=narrow?w-234:w-controlW-254;summary.setBounds(228,248,Math.max(120,summaryW),summary.getPreferredSize().height);controls.setBounds(narrow?228:w-controlW, narrow?260+summary.getPreferredSize().height:248,narrow?w-228:controlW,controls.getPreferredSize().height);}};
+    head.setOpaque(false);head.add(coverHolder);head.add(summary);head.add(controls);head.add(banner);all.add(head);
     JPanel reviewBox = card();
-    reviewBox.add(label("La tua recensione", 20, true), BorderLayout.NORTH);
-    JTextArea text = new JTextArea(3, 60);
-    text.setLineWrap(true);
-    text.setWrapStyleWord(true);
-    text.setBackground(LAV);
-    text.setForeground(BLUE);
-    text.setBorder(new EmptyBorder(12, 12, 12, 12));
-    reviewBox.add(textBox(text));
-    reviewBox.add(actionRow(button("Pubblica / aggiorna", true, () -> mutate("review", obj("game", gid, "text", text.getText()), () -> detail(g)))), BorderLayout.SOUTH);
-    all.add(reviewBox);
-    JPanel reviews = card();
-    reviews.add(label("Recensioni della community", 20, true), BorderLayout.NORTH);
-    JPanel reviewList = col(muted("Caricamento…"));
-    reviews.add(reviewList);
-    all.add(reviews);
+    JTextArea text = new JTextArea(3, 36);text.setLineWrap(true);text.setWrapStyleWord(true);text.setBackground(LAV);text.setForeground(BLUE);text.setBorder(new EmptyBorder(12,12,12,12));
+    JPanel reviewList=col(muted("Caricamento…"));
+    JPanel reviewContent=col(label("La tua recensione",20,true),textBox(text),actionRow(button("Pubblica / aggiorna",true,()->mutate("review",obj("game",gid,"text",text.getText()),()->detail(g)))),new JSeparator(),label("Recensioni della community",20,true),reviewList);reviewBox.add(reviewContent);
+    JPanel activity=card();activity.add(label("Attività degli amici",20,true),BorderLayout.NORTH);JPanel activityItems=col();
+    for(Map<String,Object> item:rows("feed").stream().filter(v->s(v,"game").equals(gid)).limit(5).toList())activityItems.add(wrap(s(item,"handle")+" "+s(item,"action"),300));
+    if(activityItems.getComponentCount()==0)activityItems.add(wrap("Qui vedrai le attività condivise dagli amici su questo gioco.",300));activity.add(activityItems,BorderLayout.CENTER);
+    JPanel lower=new JPanel(new GridBagLayout());lower.setOpaque(false);GridBagConstraints lc=new GridBagConstraints();lc.gridx=0;lc.weightx=.67;lc.fill=GridBagConstraints.BOTH;lc.anchor=GridBagConstraints.NORTHWEST;lc.insets=new Insets(0,0,0,20);lower.add(reviewBox,lc);lc.gridx=1;lc.weightx=.33;lc.insets=new Insets(0,0,0,0);lower.add(activity,lc);all.add(lower);
     showBody(all);
     work("Caricamento recensioni…", () -> api.call("reviews", obj("game", gid)), r -> {
       reviewList.removeAll();

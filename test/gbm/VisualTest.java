@@ -60,6 +60,8 @@ public class VisualTest {
       Thread.sleep(1000);
       capture(app [0], out.resolve("gioco.png"));
       bottom(app[0]);capture(app[0],out.resolve("gioco-bottom.png"));
+      SwingUtilities.invokeAndWait(()->{app[0].frame.setSize(1100,760);app[0].detail(app[0].game("local:minecraft"));});
+      capture(app[0],out.resolve("gioco-small.png"));
       SwingUtilities.invokeAndWait(() -> app [0].startDemo());
       Thread.sleep(1500);
       SwingUtilities.invokeAndWait(()->{JFrame demo=null;for(Frame f:Frame.getFrames())if(f instanceof JFrame j&&j.isVisible()&&j.getTitle().contains("DEMO LOCALE"))demo=j;if(demo==null)throw new AssertionError("Demo did not open");if(server.db.rows("users").size()!=1)throw new AssertionError("Demo touched original server");for(Frame f:Frame.getFrames())f.dispose();});

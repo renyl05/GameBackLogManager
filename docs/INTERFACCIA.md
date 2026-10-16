@@ -1,4 +1,4 @@
-# Correzioni grafiche · 2.4 beta
+# Correzioni grafiche · 2.5 beta
 
 Il menu iniziale ora è composto da pulsanti reali, con pannelli e testi disegnati nativamente. Non viene più ingrandita l’intera immagine del menu. Le icone originali sono conservate e visualizzate senza superare la risoluzione disponibile, considerando anche la densità dello schermo. Non si promette di ricostruire dettagli assenti nelle immagini originali.
 
@@ -29,3 +29,15 @@ La pagina gioco separa banner, intestazione e riquadri recensione. Il selettore 
 I pulsanti calcolano la larghezza dal testo e dalle icone, senza dipendere dai margini del tema Windows. Il placeholder usa una grafica separata dal delegato del campo, con inset e baseline coerenti; scompare al focus per non sovrapporsi al cursore. Il ritaglio dell’icona Statistiche include margine su tutti i lati. Il voto usa cinque stelle, mezze stelle e valore numerico su dieci.
 
 Il tema scuro usa verde RGB(43,91,22), logo oro RGB(217,160,30), superfici verde molto scuro e testo crema. Il logo conserva gli stessi pixel e cambia solo colore. Il tema è opzionale e memorizzato sul computer.
+
+## Correzioni 2.5
+
+La misurazione e il disegno delle scritte dei pulsanti ora condividono lo stesso contesto tipografico e non demandano margini e troncamento al tema di Swing. Test su Metal/Nimbus e scale diverse; non è una verifica su Windows reale. L’icona Statistiche è ricostruita con bracci interi e terminali arrotondati.
+
+La scheda gioco riprende la prima bozza: banner panoramico, copertina sovrapposta in modo controllato, riepilogo centrale, comandi a destra e voto con dieci cerchi. Edizioni possedute, stati, preferiti e trofei conservano le rispettive funzioni. Recensioni e attività sono affiancate.
+
+Il nuovo tema scuro è un’anteprima da approvare: smeraldo profondo, oro caldo, bordi sottili. Il tema chiaro resta quello iniziale. Le copertine segnaposto restano esplicite fino alla configurazione IGDB.
+
+![Scheda gioco](ui/gioco.png)
+
+![Anteprima smeraldo e oro](ui/tema-scuro.png)
