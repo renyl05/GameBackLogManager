@@ -1,4 +1,4 @@
-# Correzioni grafiche · 2.3 beta
+# Correzioni grafiche · 2.4 beta
 
 Il menu iniziale ora è composto da pulsanti reali, con pannelli e testi disegnati nativamente. Non viene più ingrandita l’intera immagine del menu. Le icone originali sono conservate e visualizzate senza superare la risoluzione disponibile, considerando anche la densità dello schermo. Non si promette di ricostruire dettagli assenti nelle immagini originali.
 
@@ -23,3 +23,9 @@ Le immagini in questa cartella mostrano il programma reale con dati di test loca
 I pannelli verticali applicano spaziatura e allineamento anche ai componenti aggiunti successivamente. I campi dei moduli e la checkbox condividono lo stesso margine sinistro. I pulsanti mantengono la larghezza del contenuto; l’avatar ha dimensioni quadrate e forma circolare. Le icone Statistiche ed Esci sono ricavate da ritagli completi. Home non disegna più un fondo bianco sotto il bordo azzurro.
 
 La pagina gioco separa banner, intestazione e riquadri recensione. Il selettore dell’edizione varia la sagoma della copertina in base ai formati fisici più comuni della piattaforma (es. Switch, DS, custodie DVD e jewel case). Le proporzioni sono valori predefiniti: edizioni e regioni possono avere custodie differenti. L’immagine originale viene adattata senza deformarla o ritagliarla.
+
+## Correzioni 2.4
+
+I pulsanti calcolano la larghezza dal testo e dalle icone, senza dipendere dai margini del tema Windows. Il placeholder usa una grafica separata dal delegato del campo, con inset e baseline coerenti; scompare al focus per non sovrapporsi al cursore. Il ritaglio dell’icona Statistiche include margine su tutti i lati. Il voto usa cinque stelle, mezze stelle e valore numerico su dieci.
+
+Il tema scuro usa verde RGB(43,91,22), logo oro RGB(217,160,30), superfici verde molto scuro e testo crema. Il logo conserva gli stessi pixel e cambia solo colore. Il tema è opzionale e memorizzato sul computer.

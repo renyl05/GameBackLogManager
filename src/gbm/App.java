@@ -14,6 +14,8 @@ import static gbm.Theme.*;
 public final class App {
   final JFrame frame = new JFrame("Game Backlog Manager");
   final Api api;
+  boolean demo;
+  String selectedEdition="";
   Map < String, Object > state = Json.obj();
   final Preferences prefs = Preferences.userNodeForPackage(App.class);
   String page = "Menu";
@@ -23,6 +25,7 @@ public final class App {
   static Server local;
   public App(Api api) {
     this.api = api;
+    Theme.palette(prefs.getBoolean("darkMode",false));
     Theme.scale = prefs.getFloat("textScale", 1);
     Theme.contrast = prefs.getBoolean("contrast", false);
     Theme.setup();
@@ -77,7 +80,7 @@ public final class App {
       @Override public Dimension getMinimumSize(){return new Dimension(0,getPreferredSize().height);}
     };
     area.setEditable(false);area.setOpaque(false);area.setLineWrap(true);area.setWrapStyleWord(true);
-    area.setFont(font(14,false));area.setForeground(Theme.contrast?new Color(35,18,90):BLUE);
+    area.setFont(font(14,false));area.setForeground(Theme.contrast&&!Theme.dark?new Color(35,18,90):BLUE);
     return area;
   }
 
@@ -148,9 +151,9 @@ public final class App {
     JButton profile = avatar(s(m(state.get("me")), "username"), () -> settings());
     String profileName=s(m(state.get("me")),"username");profile.setText(profileName.length()>1?profileName.substring(0,2).toUpperCase(Locale.ROOT):profileName.toUpperCase(Locale.ROOT));profile.setToolTipText(s(m(state.get("me")),"handle"));profile.setPreferredSize(new Dimension(52,52));profile.setBorder(new EmptyBorder(8,8,8,8));
     JPanel avatarHolder=new JPanel(new GridBagLayout());avatarHolder.setOpaque(false);avatarHolder.setName("avatar");avatarHolder.add(profile);
-    nav.add(avatarHolder, BorderLayout.EAST);
+    nav.add(actionRow(avatarHolder,button("Esci",()->frame.dispatchEvent(new WindowEvent(frame,WindowEvent.WINDOW_CLOSING)))), BorderLayout.EAST);
     root.add(nav, BorderLayout.NORTH);
-    content = new RoundPanel(Color.WHITE, 34);
+    content = new RoundPanel(SURFACE, 34);
     content.setBorder(new EmptyBorder(22, 24, 22, 24));
     content.setLayout(new BorderLayout(10, 16));
     root.add(content, BorderLayout.CENTER);
@@ -182,7 +185,7 @@ public final class App {
   void auth(boolean register) {
     JPanel root = new JPanel(new GridBagLayout());
     root.setBackground(PINK);
-    JPanel form = new RoundPanel(Color.WHITE, 36);
+    JPanel form = new RoundPanel(SURFACE, 36);
     form.setBorder(new EmptyBorder(28, 38, 28, 38));
     form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
     form.setPreferredSize(new Dimension(500,register?612:470));
@@ -238,6 +241,7 @@ public final class App {
     form.add(Box.createVerticalStrut(12));
     if (! register) {form.add(button("Password dimenticata?", () -> resetPassword(email.getText())));form.add(Box.createVerticalStrut(12));}
     form.add(button(register ? "Hai già un account? Accedi" : "Non hai un account? Registrati", () -> auth(! register)));
+    if(register){form.add(Box.createVerticalStrut(12));form.add(button("Prova senza account · demo locale",()->startDemo()));form.setPreferredSize(new Dimension(500,670));}
     for(Component child:form.getComponents())if(child instanceof JComponent j)j.setAlignmentX(Component.LEFT_ALIGNMENT);
     JPanel logoRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
     logoRow.setOpaque(false);
@@ -257,6 +261,12 @@ public final class App {
     frame.revalidate();
     frame.repaint();
   }
+  void startDemo(){
+    work("Apertura demo locale…",()->{Properties cfg=new Properties();cfg.setProperty("GBM_TEST_ISOLATED","true");Server server=new Server(Files.createTempDirectory("gbm-demo-").resolve("demo.json"),0,cfg);server.start();Api client=new Api("http://127.0.0.1:"+server.port());try{client.token=s(client.call("register",obj("email","demo@example.invalid","username","demo","password",UUID.randomUUID().toString())),"token");return new Object[]{server,client,client.call("state",obj())};}catch(Exception e){server.close();throw e;}},r->{Server server=(Server)r[0];App next=new App((Api)r[1]);next.demo=true;next.state=m(r[2]);next.frame.setTitle("Game Backlog Manager · DEMO LOCALE");next.frame.addWindowListener(new WindowAdapter(){public void windowClosing(WindowEvent e){server.close();}});next.menu();next.frame.setVisible(true);frame.dispose();});
+  }
+  List<Map<String,Object>> editions(Map<String,Object> e){return l(e.get("editions")).stream().map(Json::map).toList();}
+  boolean owns(Map<String,Object> e,String platform){return editions(e).stream().anyMatch(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))&&(platform.isBlank()||s(v,"platform").toLowerCase(Locale.ROOT).contains(platform.toLowerCase(Locale.ROOT))));}
+  String editionStatus(Map<String,Object> e,String platform){return editions(e).stream().filter(v->s(v,"platform").equals(platform)).map(v->s(v,"status")).findFirst().orElse("");}
   void menu() {
     page = "Menu";
     JPanel root = new JPanel(new BorderLayout());
@@ -321,7 +331,7 @@ public final class App {
     }
   }
   JPanel gameCard(Map < String, Object > g, boolean personal) {
-    JPanel card = new RoundPanel(Color.WHITE, 20);
+    JPanel card = new RoundPanel(SURFACE, 20);
     card.setBorder(new CompoundBorder(new RoundedBorder(LINE, 20), new EmptyBorder(8, 8, 10, 8)));
     card.setLayout(new BorderLayout(4, 8));
     Art art = new Art(s(g, "cover"), s(g, "name"), 180, 255);
@@ -350,12 +360,17 @@ public final class App {
     if (personal) {
       bottom.add(muted(stateName(s(e, "status")) +(e.get("rating") == null ? "" : "   Voto " + e.get("rating") + "/10")), BorderLayout.SOUTH);
     }
+    Map<String,Object> badgeEntry=g.containsKey("ownedEntry")?m(g.get("ownedEntry")):e;
+    String ownedPlatforms=editions(badgeEntry).stream().filter(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))).map(v->s(v,"platform")).collect(java.util.stream.Collectors.joining(", "));
+    if(!ownedPlatforms.isBlank()){JLabel badge=muted("In libreria · "+ownedPlatforms);badge.setToolTipText(ownedPlatforms);bottom.add(badge,BorderLayout.NORTH);}
     card.add(bottom, BorderLayout.SOUTH);
     return card;
   }
   void saveEntry(Map < String, Object > g, String status, boolean favorite, Object rating, Runnable next) {
     mutate("entry", obj("game", g.get("id"), "status", status, "favorite", favorite, "rating", rating), next);
   }
+  void saveEdition(Map<String,Object> game,String platform,String status,boolean favorite,Object rating,Runnable next){mutate("entry",obj("game",game.get("id"),"platform",platform,"status",status,"favorite",favorite,"rating",rating),next);}
+  JPanel ratingPicker(JCheckBox enabled,JSpinner value){return col(enabled,new RatingStars(value,enabled),actionRow(muted("Voto / 10"),value));}
   void catalog(boolean library, String mode, List < Map < String, Object >> provided) {
     shell(library ? "Libreria" : "Catalogo");
     JPanel top = col();
@@ -396,13 +411,13 @@ public final class App {
         Map < String, Object > e = entry(s(g, "id"));
         String st = s(e, "status");
         boolean match = ! library || switch (selected [0]) {
-          case "In corso" -> st.equals("IN_CORSO");
-          case "Finiti" -> st.equals("FINITO");
-          case "Da giocare" -> st.equals("DA_GIOCARE");
-          case "Desiderati" -> st.equals("DESIDERATO");
+          case "In corso" -> editions(e).stream().anyMatch(v->s(v,"status").equals("IN_CORSO"));
+          case "Finiti" -> editions(e).stream().anyMatch(v->s(v,"status").equals("FINITO"));
+          case "Da giocare" -> editions(e).stream().anyMatch(v->s(v,"status").equals("DA_GIOCARE"));
+          case "Desiderati" -> editions(e).stream().anyMatch(v->s(v,"status").equals("DESIDERATO"));
           default -> st.equals("IN_CORSO") || st.equals("FINITO");
         };
-        return match && s(g, "name").toLowerCase(Locale.ROOT).contains(q) &&(p.equals(platforms [0]) || s(g, "platforms").toLowerCase(Locale.ROOT).contains(p.toLowerCase(Locale.ROOT))) &&(ge.equals("Tutti i generi") || s(g, "genres").toLowerCase(Locale.ROOT).contains(ge.toLowerCase(Locale.ROOT))) &&(! favorite.isSelected() || Json.yes(e, "favorite"));
+        return match && s(g, "name").toLowerCase(Locale.ROOT).contains(q) &&(p.equals(platforms [0]) || (library?editions(e).stream().anyMatch(v->s(v,"platform").toLowerCase(Locale.ROOT).contains(p.toLowerCase(Locale.ROOT))&&switch(selected[0]){case "In corso"->s(v,"status").equals("IN_CORSO");case "Finiti"->s(v,"status").equals("FINITO");case "Da giocare"->s(v,"status").equals("DA_GIOCARE");case "Desiderati"->s(v,"status").equals("DESIDERATO");default->Set.of("FINITO","IN_CORSO").contains(s(v,"status"));}):s(g, "platforms").toLowerCase(Locale.ROOT).contains(p.toLowerCase(Locale.ROOT)))) &&(ge.equals("Tutti i generi") || s(g, "genres").toLowerCase(Locale.ROOT).contains(ge.toLowerCase(Locale.ROOT))) &&(! favorite.isSelected() || Json.yes(e, "favorite"));
       }).toList();
       area.removeAll();
       area.add(scroll(grid(found, library)));
@@ -516,17 +531,22 @@ public final class App {
     shell("Catalogo");
     String gid = s(g, "id");
     Map < String, Object > e = entry(gid);
+    String[] available=java.util.stream.Stream.concat(Arrays.stream(s(g,"platforms").isBlank()?new String[]{"Edizione non specificata"}:s(g,"platforms").split(", ")),editions(e).stream().map(v->s(v,"platform"))).distinct().toArray(String[]::new);
+    if(!Arrays.asList(available).contains(selectedEdition))selectedEdition=available[0];
+    final String platformEdition=selectedEdition;
     JPanel all = col();
     Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 250);banner.setMaximumSize(new Dimension(Integer.MAX_VALUE,250));
     all.add(banner);
     JPanel head = new JPanel(new BorderLayout(22, 5));
     head.setOpaque(false);head.setBorder(new EmptyBorder(12,0,12,0));
-    JComboBox<String> edition=combo(s(g,"platforms").isBlank()?new String[]{"Piattaforma non specificata"}:s(g,"platforms").split(", "));
+    JComboBox<String> edition=combo(available);
+    edition.setSelectedItem(platformEdition);
+    edition.setRenderer(new DefaultListCellRenderer(){public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean chosen,boolean focus){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,chosen,focus);label.setFont(font(14,false));String platform=Objects.toString(value);label.setText(platform+(owns(e,platform)?" · Posseduto":editionStatus(e,platform).isBlank()?"":" · "+stateName(editionStatus(e,platform))));label.setBorder(new EmptyBorder(7,10,7,10));label.setBackground(chosen?LAV:SURFACE);label.setForeground(INK);return label;}});
     Art cover=new Art(s(g,"cover"),s(g,"name"),180,coverHeight(180,edition.getSelectedItem().toString()));
     cover.contain=true;
     JPanel coverHolder=new JPanel(new BorderLayout());coverHolder.setOpaque(false);coverHolder.add(cover,BorderLayout.NORTH);
     head.add(coverHolder,BorderLayout.WEST);
-    edition.addActionListener(ev->{cover.setPreferredSize(new Dimension(180,coverHeight(180,edition.getSelectedItem().toString())));head.revalidate();});
+    edition.addActionListener(ev->{selectedEdition=edition.getSelectedItem().toString();detail(g);});
     JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), label("Edizione / formato della copertina",14,true),edition,wrap(s(g, "summary"), 480));
     head.add(summary);
     String [] st = {
@@ -535,7 +555,7 @@ public final class App {
       "", "IN_CORSO", "FINITO", "DA_GIOCARE", "DESIDERATO"
     };
     JComboBox < String > statusBox = combo(st);
-    int index = Arrays.asList(codes).indexOf(s(e, "status"));
+    int index = Arrays.asList(codes).indexOf(editionStatus(e,platformEdition));
     statusBox.setSelectedIndex(Math.max(0, index));
     JCheckBox heart = new StyledCheckBox("Preferito", Json.yes(e, "favorite"));
     heart.setOpaque(false);
@@ -544,7 +564,7 @@ public final class App {
     JCheckBox rated = new StyledCheckBox("Il tuo voto / 10", e.get("rating") != null);
     rated.setOpaque(false);
     rated.setForeground(BLUE);
-    JPanel controls = col(row(button("+ Libreria", true, () -> saveEntry(g, "IN_CORSO", heart.isSelected(), rated.isSelected() ? rating.getValue() : null, () -> detail(g))), heart), label("Stato", 14, true), statusBox, row(rated, rating), button("Salva", true, () -> saveEntry(g, codes [statusBox.getSelectedIndex()], heart.isSelected(), rated.isSelected() ? rating.getValue() : null, () -> detail(g))));
+    JPanel controls = col(actionRow(button(owns(e,platformEdition)?"Edizione in libreria":"+ Libreria", true, () -> {if(!owns(e,platformEdition))saveEdition(g,platformEdition,"IN_CORSO",heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g));}), heart), label("Stato", 14, true), statusBox, ratingPicker(rated,rating), button("Salva", true, () -> saveEdition(g,platformEdition,codes[statusBox.getSelectedIndex()],heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g))));
     Map < String, Object > hours = steamHours(gid, rows("links"));
     controls.add(muted(hours == null ? "Ore giocate: Non disponibile" : String.format(Locale.ITALY, "Steam · %.1f ore", Json.num(hours, "minutes") / 60.0)));
     if (! s(g, "steamApp").isBlank()) controls.add(button("Trofei / obiettivi Steam", () -> achievements(g, uid(), null)));
@@ -660,7 +680,9 @@ public final class App {
       if (! Json.yes(r, "visible")) body.add(label("Questa libreria è privata", 20, true));
       else {
         List < Map < String, Object >> items = l(r.get("entries")).stream().map(Json::map).filter(e -> Set.of("FINITO", "IN_CORSO").contains(s(e, "status"))).map(e -> game(s(e, "game"))).toList();
-        body.add(grid(items, false));
+        List<Map<String,Object>> entries=l(r.get("entries")).stream().map(Json::map).toList();
+        JComboBox<String> filter=combo(java.util.stream.Stream.concat(java.util.stream.Stream.of("Tutte le piattaforme"),entries.stream().flatMap(e->editions(e).stream()).filter(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))).map(v->s(v,"platform")).distinct().sorted()).toArray(String[]::new));
+        JPanel gamesPanel=new JPanel(new BorderLayout());gamesPanel.setOpaque(false);Runnable refresh=()->{String platform=filter.getSelectedIndex()==0?"":filter.getSelectedItem().toString();gamesPanel.removeAll();gamesPanel.add(grid(entries.stream().filter(e->owns(e,platform)).map(e->{Map<String,Object> copy=new LinkedHashMap<>(game(s(e,"game")));copy.put("ownedEntry",e);return copy;}).toList(),false));gamesPanel.revalidate();frame.repaint();};filter.addActionListener(ev->refresh.run());body.add(filter);body.add(gamesPanel);refresh.run();
       }
       showBody(body);
     });
@@ -674,7 +696,7 @@ public final class App {
   Map < String, Double > counts(List < Map < String, Object >> entries, String field) {
     Map < String, Double > out = new LinkedHashMap < >();
     for (Map < String, Object > e : entries) {
-      String v = field.equals("status") ? stateName(s(e, "status")) : s(game(s(e, "game")), field);
+      String v = field.equals("status") ? stateName(s(e, "status")) : field.equals("platforms")?editions(e).stream().filter(x->Set.of("FINITO","IN_CORSO").contains(s(x,"status"))).map(x->s(x,"platform")).collect(java.util.stream.Collectors.joining(", ")):s(game(s(e, "game")), field);
       for (String t : v.split(", ")) if (! t.isBlank()) out.merge(t, 1.0, Double::sum);
     }
     return out;
@@ -710,7 +732,7 @@ public final class App {
     charts.setOpaque(false);
     charts.add(chart("Stato della libreria", counts(entries, "status"), true));
     charts.add(chart("Generi più presenti", counts(entries, "genres"), false));
-    charts.add(chart("Giochi per piattaforma (catalogo)", counts(entries, "platforms"), false));
+    charts.add(chart("Edizioni possedute per piattaforma", counts(entries, "platforms"), false));
     Map < String, Double > votes = new LinkedHashMap < >();
     for (int i = 0; i <= 10; i ++) votes.put("" + i, 0.0);
     for (Map < String, Object > e : rows("entries")) if (e.get("rating") instanceof Number n) votes.merge("" + Math.round(n.doubleValue()), 1.0, Double::sum);
@@ -1009,7 +1031,9 @@ public final class App {
     size.setSelectedIndex(Theme.scale > 1 ? 1 : 0);
     JCheckBox contrast = new StyledCheckBox("Contrasto elevato", Theme.contrast);
     contrast.setOpaque(false);
-    accessibility.add(col(label("Lingua", 14, true), lang, label("Dimensione testo", 14, true), size, contrast, muted("L'interfaccia non usa animazioni."), button("Applica", true, () -> {
+    StyledCheckBox darkMode=new StyledCheckBox("Modalità scura · verde e oro",Theme.dark);
+    accessibility.add(col(darkMode,label("Lingua", 14, true), lang, label("Dimensione testo", 14, true), size, contrast, muted("L'interfaccia non usa animazioni."), button("Applica", true, () -> {
+      prefs.putBoolean("darkMode",darkMode.isSelected());Theme.palette(darkMode.isSelected());
       Theme.scale = size.getSelectedIndex() == 1 ? 1.15f : 1;
       Theme.contrast = contrast.isSelected();
       prefs.putFloat("textScale", Theme.scale);
@@ -1136,7 +1160,7 @@ public final class App {
           a.fill(new java.awt.geom.Arc2D.Double(x, y, diameter, diameter, start, - angle, java.awt.geom.Arc2D.PIE));
           start -= angle;
         }
-        a.setColor(Color.WHITE);
+        a.setColor(SURFACE);
         a.fillOval(x + diameter / 4, y + diameter / 4, diameter / 2, diameter / 2);
         int yy = 45;
         i = 0;

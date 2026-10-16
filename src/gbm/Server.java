@@ -158,7 +158,7 @@ public final class Server implements AutoCloseable {
     while (db.rows("activities").size() > 2000) db.rows("activities").remove(0);
   }
   Map < String, Object > dispatch(String route, Map < String, Object > p, String token, String ip) throws Exception {
-    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.3", "mail", mailer.ready());
+    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.4", "mail", mailer.ready());
     if (route.equals("reset-request")) {
       rate(ip);
       if (! mailer.ready()) throw new IllegalStateException("Recupero password non disponibile: servizio email non configurato sul server.");
@@ -263,12 +263,26 @@ public final class Server implements AutoCloseable {
         if (! Set.of("", "FINITO", "IN_CORSO", "DA_GIOCARE", "DESIDERATO").contains(status)) throw new IllegalArgumentException("Stato non valido");
         Object rating = p.get("rating");
         if (rating != null &&(!(rating instanceof Number) || ! Double.isFinite(((Number) rating).doubleValue()) ||((Number) rating).doubleValue() < 0 ||((Number) rating).doubleValue() > 10)) throw new IllegalArgumentException("Voto da 0 a 10");
+        String requestedPlatform=s(p,"platform");Map<String,Object> requestedGame=db.find("games","id",gid);
+        if(!requestedPlatform.isBlank()&&!requestedPlatform.equals("Edizione non specificata")&&!Arrays.asList(s(requestedGame,"platforms").split(", ")).contains(requestedPlatform))throw new IllegalArgumentException("Piattaforma non disponibile per questo gioco");
         if (e == null) {
           e = Json.obj("user", uid, "game", gid, "status", "", "favorite", false, "rating", null);
           db.rows("entries").add(e);
         }
         String before = s(e, "status");
-        e.put("status", status);
+        List<Object> editions=Json.list(e.computeIfAbsent("editions",z->new ArrayList<>()));
+        String platform=s(p,"platform");
+        if(!platform.isBlank()||!before.equals(status)){
+          Map<String,Object> game=db.find("games","id",gid);
+          if(platform.isBlank())platform=editions.size()==1?s(map(editions.get(0)),"platform"):s(game,"platforms").split(", ")[0];
+          if(!platform.equals("Edizione non specificata")&&!Arrays.asList(s(game,"platforms").split(", ")).contains(platform))throw new IllegalArgumentException("Piattaforma non disponibile per questo gioco");
+          final String target=platform;
+          Map<String,Object> edition=editions.stream().map(Json::map).filter(v->s(v,"platform").equals(target)).findFirst().orElse(null);
+          if(status.isBlank()){if(edition!=null)editions.remove(edition);}
+          else if(edition==null)editions.add(Json.obj("platform",platform,"status",status));else edition.put("status",status);
+        }
+        String aggregate="";for(String candidate:List.of("IN_CORSO","FINITO","DA_GIOCARE","DESIDERATO"))if(editions.stream().map(Json::map).anyMatch(v->s(v,"status").equals(candidate))){aggregate=candidate;break;}
+        e.put("status", aggregate);
         e.put("favorite", Json.yes(p, "favorite"));
         e.put("rating", rating);
         e.put("updated", System.currentTimeMillis());
@@ -277,7 +291,7 @@ public final class Server implements AutoCloseable {
           if (s(r, "user").equals(uid) && s(r, "game").equals(gid)) r.put("rating", rating);
         }
         if (! before.equals(status) && ! status.isBlank()) activity(uid, gid, status.equals("FINITO") ? "ha completato" : "ha aggiornato lo stato di");
-        if (status.isBlank() && ! Json.yes(e, "favorite") && rating == null) db.rows("entries").remove(e);
+        if (Json.list(e.get("editions")).isEmpty() && ! Json.yes(e, "favorite") && rating == null) db.rows("entries").remove(e);
         db.save();
         return Json.obj("ok", true);
       }

@@ -46,6 +46,16 @@ OK achievement cache persisted
 OK provider counter reset does not create negative hours
 OK unlink removes imported data and observations
 PASS provider fixture tests (no live credentials used)
+OK platform upsert never duplicates an edition
+OK aggregate keeps active edition
+OK legacy favorite update preserves all editions
+OK unsupported edition rejected
+OK removing PC preserves PlayStation edition
+OK private edition ownership stays private
+OK public profile exposes actual owned editions
+OK editions survive restart
+OK legacy multi-platform ownership is not guessed
+PASS edition persistence and privacy
 OK embedded rounded font loaded
 OK label uses shared typeface
 OK password uses shared typeface

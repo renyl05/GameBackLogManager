@@ -1,4 +1,4 @@
-# Game Backlog Manager · 2.3 beta
+# Game Backlog Manager · 2.4 beta
 
 App desktop Java 17 con backend account e social.
 
@@ -25,3 +25,9 @@ Catalogo esteso IGDB, Steam e posta richiedono configurazione. PlayStation/Xbox/
 ## Server condiviso
 
 Avvia `AVVIA-CLIENT-REMOTO.bat` e inserisci `https://gamebacklogmanager.onrender.com`. Il backend usa Neon PostgreSQL; IGDB, Steam e posta richiedono ancora le chiavi dei rispettivi account.
+
+## Novità 2.4
+
+Edizioni possedute e stati per piattaforma, marker nel catalogo e nel selettore delle edizioni, filtri del profilo sulle piattaforme effettivamente possedute. Il voto e i preferiti restano globali al gioco. I dati precedenti multipiattaforma vengono conservati come Edizione non specificata, senza attribuzioni automatiche.
+
+Dalla registrazione puoi scegliere Prova senza account: apre una demo locale con dati temporanei, isolata dal server remoto. Modalità scura verde/oro in Impostazioni, disattivata inizialmente, e comando Esci nella barra superiore.

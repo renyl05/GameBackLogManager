@@ -25,14 +25,16 @@ public class VisualTest {
           "local:cyberpunk-2077", "DESIDERATO"
         }
       }) api.call("entry", Json.obj("game", r [0], "status", r [1], "favorite", true, "rating", 8));
+      api.call("entry",Json.obj("game","local:minecraft","platform","PlayStation 5","status","FINITO","favorite",true,"rating",8));
       Map < String, Object > state = api.call("state", Json.obj());
       App [] app = {
         null
       };
       SwingUtilities.invokeAndWait(() -> {
-        app [0] = new App(api);
+        app [0] = new App(api);Theme.palette(Boolean.getBoolean("gbm.qa.dark"));Theme.setup();app[0].auth(false);
         app [0].frame.setVisible(true);
       });
+      SwingUtilities.invokeAndWait(()->app[0].frame.getContentPane().requestFocusInWindow());
       capture(app [0], out.resolve("accesso.png"));
       SwingUtilities.invokeAndWait(()->app[0].auth(true));
       capture(app[0],out.resolve("registrazione.png"));
@@ -58,7 +60,10 @@ public class VisualTest {
       Thread.sleep(1000);
       capture(app [0], out.resolve("gioco.png"));
       bottom(app[0]);capture(app[0],out.resolve("gioco-bottom.png"));
-      SwingUtilities.invokeAndWait(() -> app [0].frame.dispose());
+      SwingUtilities.invokeAndWait(() -> app [0].startDemo());
+      Thread.sleep(1500);
+      SwingUtilities.invokeAndWait(()->{JFrame demo=null;for(Frame f:Frame.getFrames())if(f instanceof JFrame j&&j.isVisible()&&j.getTitle().contains("DEMO LOCALE"))demo=j;if(demo==null)throw new AssertionError("Demo did not open");if(server.db.rows("users").size()!=1)throw new AssertionError("Demo touched original server");for(Frame f:Frame.getFrames())f.dispose();});
+      System.out.println("PASS demo opens isolated local server without modifying original account");
     }
     System.exit(0);
   }
