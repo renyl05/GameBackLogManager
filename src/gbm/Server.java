@@ -79,7 +79,7 @@ public final class Server implements AutoCloseable {
     }
   }
   Map < String, Object > safe(Map < String, Object > u) {
-    return Json.obj("id", u.get("id"), "username", u.get("username"), "handle", u.get("handle"), "visibility", u.get("visibility"), "shareStats", u.get("shareStats"), "shareTrophies", u.get("shareTrophies"), "shareActivity", u.get("shareActivity"));
+    return Json.obj("id", u.get("id"), "username", u.get("username"), "handle", u.get("handle"), "visibility", u.get("visibility"), "shareStats", u.get("shareStats"), "shareTrophies", u.get("shareTrophies"), "shareActivity", u.get("shareActivity"), "age", u.getOrDefault("age",""), "gender", u.getOrDefault("gender",""), "origin", u.getOrDefault("origin",""), "bio", u.getOrDefault("bio",""));
   }
   void reply(HttpExchange x, int status, Object data) throws IOException {
     byte [] b = Json.write(data).getBytes(StandardCharsets.UTF_8);
@@ -158,7 +158,7 @@ public final class Server implements AutoCloseable {
     while (db.rows("activities").size() > 2000) db.rows("activities").remove(0);
   }
   Map < String, Object > dispatch(String route, Map < String, Object > p, String token, String ip) throws Exception {
-    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.4", "mail", mailer.ready());
+    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.6", "mail", mailer.ready());
     if (route.equals("reset-request")) {
       rate(ip);
       if (! mailer.ready()) throw new IllegalStateException("Recupero password non disponibile: servizio email non configurato sul server.");
@@ -377,7 +377,9 @@ public final class Server implements AutoCloseable {
         Map < String, Object > u = db.find("users", "id", s(p, "user"));
         if (u == null) throw new IllegalArgumentException("Utente non trovato");
         boolean self = s(u, "id").equals(uid), access = visible(u, uid);
-        return Json.obj("user", safe(u), "visible", access, "entries", access ? ownedRows("entries", s(u, "id")) : List.of(), "links", access &&(self || Json.yes(u, "shareTrophies") || Json.yes(u, "shareStats")) ? sharedLinks(u, self) : List.of(), "statsAllowed", access &&(self || Json.yes(u, "shareStats")), "trophiesAllowed", access &&(self || Json.yes(u, "shareTrophies")));
+        List<Object> profileLists=db.rows("lists").stream().filter(o->s(map(o),"user").equals(s(u,"id"))&&(self||Json.yes(map(o),"public"))).toList();
+        List<Object> profileFriends=new ArrayList<>();if(access)for(Object o:db.rows("users")){Map<String,Object> f=map(o);if(friends(s(u,"id"),s(f,"id")))profileFriends.add(safe(f));}
+        return Json.obj("user", safe(u),"lists",profileLists,"friends",profileFriends, "visible", access, "entries", access ? ownedRows("entries", s(u, "id")) : List.of(), "links", access &&(self || Json.yes(u, "shareTrophies") || Json.yes(u, "shareStats")) ? sharedLinks(u, self) : List.of(), "statsAllowed", access &&(self || Json.yes(u, "shareStats")), "trophiesAllowed", access &&(self || Json.yes(u, "shareTrophies")));
       }
       case "profile-update" : {
         String name = s(p, "username").trim();
@@ -386,6 +388,14 @@ public final class Server implements AutoCloseable {
         String handle = name + suffix;
         Map < String, Object > exists = db.find("users", "handle", handle);
         if (exists != null && ! s(exists, "id").equals(uid)) throw new IllegalArgumentException("Identificativo già utilizzato");
+        Map<String,Object> details=new LinkedHashMap<>();
+        for(String key:List.of("age","gender","origin","bio"))if(p.containsKey(key)){
+          String value=s(p,key).trim();int limit=key.equals("bio")?500:key.equals("age")?3:80;
+          if(value.length()>limit)throw new IllegalArgumentException("Campo "+key+" troppo lungo");
+          if(key.equals("age")&&!value.isBlank()&&(!value.matches("[0-9]{1,3}")||Integer.parseInt(value)>130))throw new IllegalArgumentException("Età non valida: usa un numero da 0 a 130 o lascia vuoto");
+          details.put(key,value);
+        }
+        me.putAll(details);
         me.put("username", name);
         me.put("handle", handle);
         for (Object o : ownedRows("lists", uid)) map(o).put("handle", handle);
