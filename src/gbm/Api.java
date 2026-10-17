@@ -14,7 +14,7 @@ public final class Api {
     if (! u.getScheme().equals("https") && !(u.getScheme().equals("http") && Set.of("localhost", "127.0.0.1", "[::1]").contains(u.getHost()))) throw new IllegalArgumentException("Usa HTTPS per un server remoto.");
   }
   public Map < String, Object > call(String route, Map < String, Object > data) throws Exception {
-    HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + "/api/" + route)).timeout(Duration.ofSeconds(80)).header("Content-Type", "application/json");
+    HttpRequest.Builder b = HttpRequest.newBuilder(URI.create(base + "/api/" + route)).timeout(Duration.ofSeconds(route.startsWith("console-")?180:80)).header("Content-Type", "application/json");
     if (! token.isBlank()) b.header("Authorization", "Bearer " + token);
     HttpResponse < String > r = http.send(b.POST(HttpRequest.BodyPublishers.ofString(Json.write(data))).build(), HttpResponse.BodyHandlers.ofString());
     if(r.statusCode()==502||r.statusCode()==503||r.statusCode()==504)throw new IllegalStateException("Server in riattivazione o temporaneamente non disponibile. Attendi circa un minuto e riprova.");

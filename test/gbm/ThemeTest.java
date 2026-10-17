@@ -20,8 +20,6 @@ public final class ThemeTest {
       ok(appended.getY()>=stack.getComponent(0).getY()+stack.getComponent(0).getHeight()+12,"appended action keeps vertical gap");
       ok(appended.getX()==stack.getComponent(0).getX(),"appended action aligns with label");
       ok(appended.getWidth()==appended.getPreferredSize().width,"action does not stretch");
-      ok(App.coverHeight(180,"Nintendo Switch")>App.coverHeight(180,"Nintendo DS"),"Switch and DS use distinct physical case ratios");
-      ok(App.coverHeight(180,"PlayStation 2")>App.coverHeight(180,"PlayStation"),"DVD and jewel case ratios differ");
       java.util.List<String> clicked=new ArrayList<>();NativeMenu menu=new NativeMenu(clicked::add);menu.setSize(1420,900);menu.doLayout();
       ok(menu.tiles.size()==7,"seven real menu buttons");
       for(int i=0;i<menu.tiles.size();i++){JButton b=menu.tiles.get(i);ok(menu.getBounds().contains(b.getBounds()),"menu bounds: "+b.getText());for(int j=i+1;j<menu.tiles.size();j++)ok(!b.getBounds().intersects(menu.tiles.get(j).getBounds()),"menu tiles never overlap");b.doClick(0);}

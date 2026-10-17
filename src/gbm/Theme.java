@@ -22,7 +22,7 @@ public final class Theme {
       MUTED=new Color(130,116,185), LINE=new Color(230,223,249);
   public static boolean dark=false;
   public static Color SURFACE=Color.WHITE, GOLD=new Color(255,255,63);
-  public static void palette(boolean enabled){dark=enabled;PINK=enabled?new Color(43,91,22):new Color(255,56,189);PURPLE=enabled?new Color(80,105,37):new Color(133,65,245);BLUE=enabled?new Color(211,225,186):new Color(55,78,239);INK=enabled?new Color(242,234,205):new Color(58,35,177);LAV=enabled?new Color(48,60,39):new Color(243,239,255);MUTED=enabled?new Color(175,190,154):new Color(130,116,185);LINE=enabled?new Color(77,93,60):new Color(230,223,249);SURFACE=enabled?new Color(27,35,24):Color.WHITE;GOLD=enabled?new Color(217,160,30):new Color(255,255,63);}
+  public static void palette(boolean enabled){dark=enabled;PINK=enabled?new Color(5,43,35):new Color(255,56,189);PURPLE=enabled?new Color(25,77,61):new Color(133,65,245);BLUE=enabled?new Color(225,201,145):new Color(55,78,239);INK=enabled?new Color(242,233,210):new Color(58,35,177);LAV=enabled?new Color(17,56,46):new Color(243,239,255);MUTED=enabled?new Color(163,186,171):new Color(130,116,185);LINE=enabled?new Color(125,108,65):new Color(230,223,249);SURFACE=enabled?new Color(8,35,30):Color.WHITE;GOLD=enabled?new Color(204,170,94):new Color(255,255,63);}
   public static float scale=1f;
   public static boolean contrast=false;
   private static final Font REGULAR=loadFont("Regular"), SEMIBOLD=loadFont("SemiBold"), BOLD=loadFont("Bold");
@@ -77,7 +77,7 @@ public final class Theme {
     UIManager.put("List.selectionForeground",ink());
   }
   public static JLabel label(String text,int size,boolean bold) {
-    JLabel l=new JLabel(text){public Dimension getPreferredSize(){Dimension d=super.getPreferredSize();return new Dimension(d.width+6,d.height);}protected void paintComponent(Graphics g){Graphics2D a=quality(g);super.paintComponent(a);a.dispose();}};
+    JLabel l=new JLabel(text){public Dimension getPreferredSize(){Dimension d=super.getPreferredSize();return new Dimension(Math.max(d.width,(int)Math.ceil(getFont().getStringBounds(getText(),new java.awt.font.FontRenderContext(null,true,true)).getWidth()))+8,d.height);}protected void paintComponent(Graphics g){Graphics2D a=quality(g);super.paintComponent(a);a.dispose();}};
     l.setFont(font(size,bold));l.setForeground(ink());return l;
   }
   public static JLabel muted(String text){JLabel l=label(text,13,false);l.setForeground(contrast?new Color(72,57,102):MUTED);return l;}
@@ -113,13 +113,27 @@ public final class Theme {
       setOpaque(false);setContentAreaFilled(false);setBorder(new EmptyBorder(9,10,9,10));setFocusPainted(false);
       setRolloverEnabled(true);setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));addActionListener(e->action.run());
     }
-    public Dimension getPreferredSize(){FontMetrics fm=getFontMetrics(getFont());Insets in=getInsets();int iw=getIcon()==null?0:getIcon().getIconWidth();int gap=iw>0&&!getText().isEmpty()?getIconTextGap():0;return new Dimension((int)Math.ceil(getFont().getStringBounds(getText(),new java.awt.font.FontRenderContext(null,true,true)).getWidth())+iw+gap+in.left+in.right,Math.max(fm.getHeight(),getIcon()==null?0:getIcon().getIconHeight())+in.top+in.bottom);}
+    double textWidth(String text){return getFont().getStringBounds(text,new java.awt.font.FontRenderContext(null,true,true)).getWidth();}
+    public Dimension getPreferredSize(){FontMetrics fm=getFontMetrics(getFont());Insets in=getInsets();int iw=getIcon()==null?0:getIcon().getIconWidth();int gap=iw>0&&!getText().isEmpty()?getIconTextGap():0;return new Dimension((int)Math.ceil(textWidth(getText()))+iw+gap+in.left+in.right+6,Math.max(fm.getHeight(),getIcon()==null?0:getIcon().getIconHeight())+in.top+in.bottom);}
+    public Dimension getMinimumSize(){return getPreferredSize();}
     public Dimension getMaximumSize(){return getPreferredSize();}
+    String captionForWidth(int available){String text=getText();if(textWidth(text)<=available)return text;while(!text.isEmpty()&&textWidth(text+"…")>available)text=text.substring(0,text.length()-1);return text.isEmpty()?"":text+"…";}
     protected void paintComponent(Graphics g){Graphics2D a=quality(g);Color bg=nav?(selected?SURFACE:null):primary?PURPLE:LAV;
       if(!isEnabled())bg=LINE;else if(getModel().isPressed()&&bg!=null)bg=bg.darker();else if(getModel().isRollover())bg=nav&&!selected?new Color(255,255,255,35):bg==null?null:bg.darker();
       if(bg!=null){a.setColor(bg);a.fill(this.getParent()!=null&&"avatar".equals(getParent().getName())?new Ellipse2D.Double(0,0,getWidth(),getHeight()):rounded(0,0,getWidth(),getHeight(),22));}
+      if(dark&&bg!=null){a.setColor(LINE);a.setStroke(new BasicStroke(1f));a.draw(rounded(.5,.5,getWidth()-1,getHeight()-1,22));}
       if(hasFocus()){a.setColor(nav?Color.WHITE:BLUE);a.setStroke(new BasicStroke(1.5f));a.draw(rounded(2,2,getWidth()-4,getHeight()-4,20));}
-      super.paintComponent(a);a.dispose();
+      // Paint text and measure it with the same font context. Swing UI delegates can
+      // otherwise reserve different margins on Windows and silently add ellipses.
+      a.setFont(getFont());a.setColor(isEnabled()?getForeground():MUTED);
+      Insets in=getInsets();Icon icon=getIcon();int iw=icon==null?0:icon.getIconWidth(),gap=iw>0&&!getText().isEmpty()?getIconTextGap():0;
+      String caption=captionForWidth(Math.max(0,getWidth()-in.left-in.right-iw-gap));
+      int tw=(int)Math.ceil(textWidth(caption)),total=tw+iw+(caption.isEmpty()?0:gap);
+      int x=getHorizontalAlignment()==SwingConstants.LEFT?in.left:Math.max(in.left,in.left+(getWidth()-in.left-in.right-total)/2);
+      boolean iconAfter=getHorizontalTextPosition()==SwingConstants.LEFT;
+      if(icon!=null)icon.paintIcon(this,a,iconAfter?x+tw+gap:x,(getHeight()-icon.getIconHeight())/2);
+      FontMetrics fm=a.getFontMetrics();int baseline=(getHeight()-fm.getHeight())/2+fm.getAscent();
+      a.drawString(caption,x+(!iconAfter&&icon!=null?iw+gap:0),baseline);a.dispose();
     }
   }
   public static JButton avatar(String text,Runnable action){
@@ -133,6 +147,13 @@ public final class Theme {
     final JSpinner value;final JCheckBox enabled;
     public RatingStars(JSpinner value,JCheckBox enabled){this.value=value;this.enabled=enabled;setPreferredSize(new Dimension(200,40));setMaximumSize(getPreferredSize());setToolTipText("Cinque stelle · mezze stelle · voto su 10");setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));addMouseListener(new java.awt.event.MouseAdapter(){public void mouseClicked(java.awt.event.MouseEvent e){value.setValue((double)Math.max(1,Math.min(10,(int)Math.ceil(e.getX()/20d))));enabled.setSelected(true);repaint();}});value.addChangeListener(e->repaint());enabled.addActionListener(e->repaint());}
     protected void paintComponent(Graphics g){Graphics2D a=quality(g);for(int i=0;i<5;i++){Path2D star=new Path2D.Double();for(int j=0;j<10;j++){double angle=-Math.PI/2+j*Math.PI/5,r=j%2==0?16:7;double x=20+i*40+Math.cos(angle)*r,y=20+Math.sin(angle)*r;if(j==0)star.moveTo(x,y);else star.lineTo(x,y);}star.closePath();a.setColor(LINE);a.fill(star);double fraction=enabled.isSelected()?Math.max(0,Math.min(1,((Number)value.getValue()).doubleValue()/2-i)):0;Shape clip=a.getClip();a.clip(new Rectangle2D.Double(i*40,0,40*fraction,40));a.setColor(dark?GOLD:PURPLE);a.fill(star);a.setClip(clip);}a.dispose();}
+  }
+  /** Ten circles, matching the approved game page; keyboard arrows adjust the vote. */
+  public static class RatingDots extends JComponent {
+    final JSpinner value;final JCheckBox enabled;
+    public RatingDots(JSpinner v,JCheckBox e){value=v;enabled=e;setPreferredSize(new Dimension(240,36));setMaximumSize(getPreferredSize());setFocusable(true);setToolTipText("Voto da 1 a 10 · frecce per modificare");setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));addMouseListener(new java.awt.event.MouseAdapter(){public void mouseClicked(java.awt.event.MouseEvent e){choose(Math.max(1,Math.min(10,e.getX()/24+1)));requestFocusInWindow();}});getInputMap().put(KeyStroke.getKeyStroke("RIGHT"),"up");getInputMap().put(KeyStroke.getKeyStroke("LEFT"),"down");getActionMap().put("up",new AbstractAction(){public void actionPerformed(java.awt.event.ActionEvent e){choose(Math.min(10,((Number)value.getValue()).doubleValue()+.5));}});getActionMap().put("down",new AbstractAction(){public void actionPerformed(java.awt.event.ActionEvent e){choose(Math.max(0,((Number)value.getValue()).doubleValue()-.5));}});v.addChangeListener(ev->repaint());e.addActionListener(ev->repaint());getAccessibleContext();}
+    void choose(double n){value.setValue(n);enabled.setSelected(true);repaint();}
+    protected void paintComponent(Graphics g){Graphics2D a=quality(g);for(int i=0;i<10;i++){Shape dot=new Ellipse2D.Double(3+i*24,8,17,17);double f=enabled.isSelected()?Math.max(0,Math.min(1,((Number)value.getValue()).doubleValue()-i)):0;a.setColor(dark?GOLD:PURPLE);Shape clip=a.getClip();a.clip(new Rectangle2D.Double(i*24,0,24*f,36));a.fill(dot);a.setClip(clip);a.setStroke(new BasicStroke(hasFocus()?2f:1.3f));a.draw(dot);}a.dispose();}
   }
   static class HeartIcon implements Icon {final boolean filled;HeartIcon(boolean f){filled=f;}public int getIconWidth(){return 21;}public int getIconHeight(){return 21;}
     public void paintIcon(Component c,Graphics g,int x,int y){Graphics2D a=quality(g);a.translate(x,y);Path2D p=new Path2D.Double();p.moveTo(10.5,18);p.curveTo(8,15,1.5,11,1.5,6);p.curveTo(1.5,1,8,-.2,10.5,4);p.curveTo(13,-.2,19.5,1,19.5,6);p.curveTo(19.5,11,13,15,10.5,18);p.closePath();a.setColor(dark?GOLD:PURPLE);if(filled)a.fill(p);else{a.setStroke(new BasicStroke(1.8f,BasicStroke.CAP_ROUND,BasicStroke.JOIN_ROUND));a.draw(p);}a.dispose();}}
@@ -162,7 +183,7 @@ public final class Theme {
   public static JScrollPane textBox(JTextArea area){JScrollPane s=new JScrollPane(area){public void paint(Graphics g){Graphics2D a=quality(g);a.clip(rounded(0,0,getWidth(),getHeight(),16));super.paint(a);a.dispose();}};s.setOpaque(false);s.getViewport().setOpaque(false);s.setBorder(new RoundedBorder(LINE,16));styleScrollBar(s.getVerticalScrollBar());area.setBorder(new EmptyBorder(12,14,12,14));area.setFont(font(14,false));area.setBackground(LAV);area.setForeground(ink());return s;}
   public static class WidthPanel extends JPanel implements Scrollable{WidthPanel(){super(new BorderLayout());setOpaque(false);}public Dimension getPreferredScrollableViewportSize(){return getPreferredSize();}public int getScrollableUnitIncrement(Rectangle r,int o,int d){return 26;}public int getScrollableBlockIncrement(Rectangle r,int o,int d){return Math.max(26,r.height-40);}public boolean getScrollableTracksViewportWidth(){return true;}public boolean getScrollableTracksViewportHeight(){return getPreferredSize().height<getParent().getHeight();}}
   public static class RoundedBorder extends AbstractBorder{final Color color;final int radius;public RoundedBorder(Color c,int r){color=c;radius=r;}public Insets getBorderInsets(Component c){return new Insets(1,1,1,1);}public void paintBorder(Component c,Graphics g,int x,int y,int w,int h){Graphics2D a=quality(g);a.setStroke(new BasicStroke(1));a.setColor(color);a.draw(rounded(x+.5,y+.5,w-1,h-1,radius));a.dispose();}}
-  public static class RoundPanel extends JPanel{final Color color;final int radius;public RoundPanel(Color c,int r){color=c;radius=r;setOpaque(false);}protected void paintComponent(Graphics g){Graphics2D a=quality(g);a.setColor(color);a.fill(rounded(0,0,getWidth(),getHeight(),radius));a.dispose();super.paintComponent(g);}}
+  public static class RoundPanel extends JPanel{final Color color;final int radius;public RoundPanel(Color c,int r){color=c;radius=r;setOpaque(false);}protected void paintComponent(Graphics g){Graphics2D a=quality(g);a.setColor(color);a.fill(rounded(0,0,getWidth(),getHeight(),radius));if(dark){a.setColor(LINE);a.setStroke(new BasicStroke(1f));a.draw(rounded(.5,.5,getWidth()-1,getHeight()-1,radius));}a.dispose();super.paintComponent(g);}}
   public static class Logo extends JComponent{
     static final Path2D path=readPath();static Path2D readPath(){Path2D p=new Path2D.Double(Path2D.WIND_EVEN_ODD);try(BufferedReader r=new BufferedReader(new InputStreamReader(Objects.requireNonNull(Logo.class.getResourceAsStream("/logo.path"))))){for(String line;(line=r.readLine())!=null;){String[]v=line.split(" ");switch(v[0]){case "M"->p.moveTo(Double.parseDouble(v[1]),Double.parseDouble(v[2]));case "Q"->p.quadTo(Double.parseDouble(v[1]),Double.parseDouble(v[2]),Double.parseDouble(v[3]),Double.parseDouble(v[4]));case "Z"->p.closePath();default->throw new IOException("Logo non valido");}}}catch(Exception e){throw new ExceptionInInitializerError("Contorno originale del logo mancante");}return p;}
     public Logo(int width){setPreferredSize(new Dimension(width,Math.round(width*113f/225)));setMaximumSize(getPreferredSize());setMinimumSize(getPreferredSize());getAccessibleContext();setToolTipText("Game Backlog Manager");}
@@ -174,15 +195,17 @@ public final class Theme {
   static final Set<String> failed=ConcurrentHashMap.newKeySet(),loading=ConcurrentHashMap.newKeySet();
   static final ExecutorService imagePool=Executors.newFixedThreadPool(4,r->{Thread t=new Thread(r,"cover-loader");t.setDaemon(true);return t;});
   public static class Art extends JComponent {
-    final String url,title;boolean contain;volatile BufferedImage source;BufferedImage rendered;int cachedW,cachedH;BufferedImage cachedSource;
+    final String url,title;boolean contain,decorative;volatile BufferedImage source;BufferedImage rendered;int cachedW,cachedH;BufferedImage cachedSource;
     public Art(String url,String title,int width,int height){this.url=hiRes(url);this.title=title;setPreferredSize(new Dimension(width,height));setMinimumSize(new Dimension(50,60));source=images.get(this.url);
       if(source==null&&!this.url.isBlank()&&!failed.contains(this.url)){imagePool.submit(()->{try{BufferedImage im=download(this.url);if(im==null&&this.url.endsWith("/library_hero.jpg"))im=download(this.url.replace("/library_hero.jpg","/header.jpg"));if(im==null)throw new IOException("Immagine non disponibile");source=im;images.put(this.url,im);}catch(Exception e){failed.add(this.url);}finally{SwingUtilities.invokeLater(this::repaint);}});}}
     static String hiRes(String u){return u.replace("/t_cover_big/","/t_cover_big_2x/").replace("/t_screenshot_big/","/t_1080p/").replace("/header.jpg","/library_hero.jpg");}
-    static BufferedImage download(String u)throws Exception{URI uri=URI.create(u);String host=uri.getHost();if(!"https".equals(uri.getScheme())||host==null||!(host.equals("images.igdb.com")||host.endsWith(".steamstatic.com")))throw new IOException("Host immagine non consentito");URLConnection c=uri.toURL().openConnection();c.setConnectTimeout(8000);c.setReadTimeout(10000);try(InputStream in=c.getInputStream()){byte[]b=in.readNBytes(12000001);if(b.length>12000000)throw new IOException("Immagine troppo grande");return ImageIO.read(new ByteArrayInputStream(b));}catch(FileNotFoundException missing){return null;}}
+    static BufferedImage download(String u)throws Exception{URI uri=URI.create(u);String host=uri.getHost();if(!"https".equals(uri.getScheme())||host==null||!(host.equals("images.igdb.com")||host.endsWith(".steamstatic.com")||host.endsWith(".playstation.net")||host.equals("image.api.playstation.com")))throw new IOException("Host immagine non consentito");URLConnection c=uri.toURL().openConnection();c.setConnectTimeout(8000);c.setReadTimeout(10000);try(InputStream in=c.getInputStream()){byte[]b=in.readNBytes(12000001);if(b.length>12000000)throw new IOException("Immagine troppo grande");return ImageIO.read(new ByteArrayInputStream(b));}catch(FileNotFoundException missing){return null;}}
     protected void paintComponent(Graphics g){Graphics2D a=quality(g);double density=Math.max(1,Math.abs(a.getTransform().getScaleX()));int w=Math.max(1,(int)Math.ceil(getWidth()*density)),h=Math.max(1,(int)Math.ceil(getHeight()*density));BufferedImage im=source;
       if(rendered==null||cachedW!=w||cachedH!=h||cachedSource!=im){rendered=new BufferedImage(w,h,BufferedImage.TYPE_INT_ARGB);Graphics2D raw=rendered.createGraphics();Graphics2D p=quality(raw);raw.dispose();p.setColor(Color.WHITE);p.fill(rounded(0,0,w,h,16*density));p.setComposite(AlphaComposite.SrcIn);
-        if(im!=null){double z=contain?Math.min(w/(double)im.getWidth(),h/(double)im.getHeight()):Math.max(w/(double)im.getWidth(),h/(double)im.getHeight());int iw=(int)Math.ceil(im.getWidth()*z),ih=(int)Math.ceil(im.getHeight()*z);p.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih,null);}else{p.setPaint(new GradientPaint(0,0,dark?new Color(83,103,47):new Color(164,94,250),w,h,PINK));p.fillRect(0,0,w,h);}p.dispose();cachedW=w;cachedH=h;cachedSource=im;}
+        if(im!=null){double z=contain?Math.min(w/(double)im.getWidth(),h/(double)im.getHeight()):Math.max(w/(double)im.getWidth(),h/(double)im.getHeight());int iw=(int)Math.ceil(im.getWidth()*z),ih=(int)Math.ceil(im.getHeight()*z);p.drawImage(im,(w-iw)/2,(h-ih)/2,iw,ih,null);}else{p.setPaint(new GradientPaint(0,0,dark?new Color(26,78,64):new Color(164,94,250),w,h,PINK));p.fillRect(0,0,w,h);}p.dispose();cachedW=w;cachedH=h;cachedSource=im;}
       a.drawImage(rendered,0,0,getWidth(),getHeight(),null);
+      if(decorative){a.dispose();return;}
+      if(im==null&&getWidth()<100){setToolTipText("Copertina non disponibile · "+title);a.setColor(Color.WHITE);a.setFont(font(10,false));FontMetrics tiny=a.getFontMetrics();a.drawString("N/D",(getWidth()-tiny.stringWidth("N/D"))/2,getHeight()/2);a.dispose();return;}
       if(im==null){a.setColor(Color.WHITE);a.setFont(font(17,true));FontMetrics fm=a.getFontMetrics();List<String>lines=new ArrayList<>();String line="";for(String word:title.split(" ")){String next=line.isEmpty()?word:line+" "+word;if(fm.stringWidth(next)>getWidth()-24&&!line.isEmpty()){lines.add(line);line=word;}else line=next;}if(!line.isEmpty())lines.add(line);int y=getHeight()/2-lines.size()*fm.getHeight()/2;for(String l:lines){a.drawString(l,Math.max(12,(getWidth()-fm.stringWidth(l))/2),y+=fm.getHeight());}a.setFont(font(10,false));a.drawString("Copertina non disponibile",10,getHeight()-12);}
       a.dispose();
     }

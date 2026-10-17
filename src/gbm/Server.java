@@ -15,6 +15,8 @@ import java.io.*;
 public final class Server implements AutoCloseable {
   public final Store db;
   final Providers providers;
+  final ConsoleProviders consoles;
+  final ConsoleRoutes consoleRoutes;
   final HttpServer server;
   final ExecutorService workers = Executors.newFixedThreadPool(8);
   final Map < String, Session > sessions = new ConcurrentHashMap < >();
@@ -37,6 +39,8 @@ public final class Server implements AutoCloseable {
     if(Boolean.parseBoolean(SnapshotDatabase.setting(cfg,"REQUIRE_DATABASE","false"))&&SnapshotDatabase.setting(cfg,"JDBC_DATABASE_URL","").isBlank())throw new IllegalStateException("Configurazione cloud incompleta: JDBC_DATABASE_URL obbligatorio.");
     db = new Store(path,cfg);
     providers = provider;
+    consoles=new ConsoleProviders(cfg,provider.http);
+    consoleRoutes=new ConsoleRoutes(this,consoles);
     mailer = new Mailer(cfg);
     String host = SnapshotDatabase.setting(cfg,"BIND_HOST", "127.0.0.1");
     server = HttpServer.create(new InetSocketAddress(host, port), 32);
@@ -105,7 +109,8 @@ public final class Server implements AutoCloseable {
       String route = x.getRequestURI().getPath().substring(5);
       String bearer = Objects.toString(x.getRequestHeaders().getFirst("Authorization"), "").replaceFirst("^Bearer ", "");
       Map < String, Object > result;
-      synchronized (this) {
+      if(route.startsWith("console-"))result=consoleRoutes.dispatch(route,input,bearer);
+      else synchronized (this) {
         result = dispatch(route, input, bearer, x.getRemoteAddress().getAddress().getHostAddress());
       }
       reply(x, 200, result);
@@ -158,7 +163,7 @@ public final class Server implements AutoCloseable {
     while (db.rows("activities").size() > 2000) db.rows("activities").remove(0);
   }
   Map < String, Object > dispatch(String route, Map < String, Object > p, String token, String ip) throws Exception {
-    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.6", "mail", mailer.ready());
+    if (route.equals("health")) return Json.obj("ok", true, "igdb", providers.igdbReady(), "steam", providers.steamReady(), "version", "2.8", "mail", mailer.ready());
     if (route.equals("reset-request")) {
       rate(ip);
       if (! mailer.ready()) throw new IllegalStateException("Recupero password non disponibile: servizio email non configurato sul server.");
@@ -219,7 +224,7 @@ public final class Server implements AutoCloseable {
     Map < String, Object > me = user(token);
     String uid = s(me, "id");
     switch (route) {
-      case "logout" : sessions.remove(token);
+      case "logout" : sessions.remove(token);consoles.logout(uid);
       return Json.obj("ok", true);
       case "state" : {
         List < Object > fr = new ArrayList < >(), requests = new ArrayList < >(), feed = new ArrayList < >();
@@ -244,16 +249,28 @@ public final class Server implements AutoCloseable {
         Collections.reverse(feed);
         Map < String, Object > profile = safe(me);
         profile.put("email", me.get("email"));
-        return Json.obj("me", profile, "games", db.rows("games"), "entries", ownedRows("entries", uid), "friends", fr, "requests", requests, "feed", feed, "links", ownedRows("links", uid), "lists", db.rows("lists").stream().filter(o -> s(map(o), "user").equals(uid) || Json.yes(map(o), "public")).toList(), "igdb", providers.igdbReady(), "steam", providers.steamReady());
+        return Json.obj("me", profile, "games", db.rows("games"), "entries", ownedRows("entries", uid), "friends", fr, "requests", requests, "feed", feed, "links", ownedRows("links", uid), "lists", db.rows("lists").stream().filter(o -> s(map(o), "user").equals(uid) || Json.yes(map(o), "public")).toList(), "igdb", providers.igdbReady(), "steam", providers.steamReady(),"consoleSupport",true,"xboxConfigured",consoles.xboxReady(),"consoleLinks",consoleRoutes.state(uid));
       }
       case "catalog" : {
         List < Object > g = providers.catalog(s(p, "query"), s(p, "mode"), (int) Math.max(0, Math.min(10000, Json.num(p, "offset"))));
         for (Object o : g) {
           Map < String, Object > v = map(o);
-          if (db.find("games", "id", s(v, "id")) == null) db.rows("games").add(v);
+          Map<String,Object> cached=db.find("games","id",s(v,"id"));
+          if(cached==null)db.rows("games").add(v);else cached.putAll(v);
         }
         db.save();
         return Json.obj("games", g);
+      }
+      case "game-metadata" : {
+        Map<String,Object> game=db.find("games","id",s(p,"game"));if(game==null)throw new IllegalArgumentException("Gioco non trovato");
+        if(providers.igdbReady()){
+          List<Object> candidates=providers.catalog(s(game,"name"),"catalog",0);
+          for(Object item:candidates){Map<String,Object> metadata=map(item);if(!s(metadata,"name").equalsIgnoreCase(s(game,"name")))continue;
+            for(String key:List.of("cover","hero","summary","genres","year"))if(!s(metadata,key).isBlank())game.put(key,metadata.get(key));
+            game.put("metadataSource","IGDB");break;
+          }
+        }
+        game.put("metadataChecked",true);db.save();return Json.obj("game",new LinkedHashMap<>(game));
       }
       case "entry" : {
         String gid = s(p, "game");
@@ -426,7 +443,7 @@ public final class Server implements AutoCloseable {
         Map < String, Object > r = new LinkedHashMap < >(map(o));
         r.remove("votes");
         return r;
-      }).toList(), "links", ownedRows("links", uid), "lists", ownedRows("lists", uid));
+      }).toList(), "links", ownedRows("links", uid), "lists", ownedRows("lists", uid),"consoleLinks",ownedRows("consoleLinks",uid));
       case "list-create" : {
         String title = s(p, "title").trim();
         if (title.length() < 1 || title.length() > 100) throw new IllegalArgumentException("Titolo: 1–100 caratteri");

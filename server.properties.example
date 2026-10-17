@@ -23,3 +23,7 @@ JDBC_DATABASE_PASSWORD=
 REQUIRE_DATABASE=false
 # Recupero password via HTTPS: alternativa a SMTP, necessaria su Render Free.
 BREVO_API_KEY=
+
+# Xbox: ID pubblico della propria app Microsoft con account personali e device flow abilitato.
+# Verificare autorizzazione XboxLive.signin e accesso ai servizi Xbox per la propria app.
+XBOX_CLIENT_ID=

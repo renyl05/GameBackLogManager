@@ -22,6 +22,7 @@ public final class App {
   JPanel content;
   JLabel status = muted(" ");
   boolean busy;
+  long navigationEpoch;
   static Server local;
   public App(Api api) {
     this.api = api;
@@ -96,6 +97,7 @@ public final class App {
       return;
     }
     busy = true;
+    long startedNavigation=navigationEpoch;
     status.setText(message);
     frame.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
     new SwingWorker < T, Void >() {
@@ -106,6 +108,7 @@ public final class App {
         busy = false;
         frame.setCursor(Cursor.getDefaultCursor());
         status.setText(" ");
+        if(startedNavigation!=navigationEpoch)return;
         try {
           done.accept(get());
         } catch (Exception e) {
@@ -130,6 +133,7 @@ public final class App {
   }
   void shell(String selected) {
     page = selected;
+    frame.setTitle("Game Backlog Manager · "+(demo?"DEMO LOCALE":api.base));
     JPanel root = new JPanel(new BorderLayout(14, 12));
     root.setBackground(PINK);
     root.setBorder(new EmptyBorder(14, 22, 14, 22));
@@ -137,7 +141,7 @@ public final class App {
     nav.setOpaque(false);
     JButton logo = new JButton();
     logo.setLayout(new BorderLayout());
-    logo.add(new Logo(145));
+    Logo logoArt=new Logo(145);logoArt.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));logoArt.addMouseListener(new MouseAdapter(){public void mouseClicked(MouseEvent e){menu();}});logo.add(logoArt);logo.setToolTipText("Torna al menu iniziale");logo.getAccessibleContext().setAccessibleName("Torna al menu iniziale");logo.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     logo.setBorder(null);
     logo.setContentAreaFilled(false);
     logo.addActionListener(e -> menu());
@@ -148,7 +152,7 @@ public final class App {
       links.add(b);
     }
     nav.add(links, BorderLayout.CENTER);
-    JButton profile = avatar(s(m(state.get("me")), "username"), () -> settings());
+    JButton profile = avatar(s(m(state.get("me")), "username"), () -> profile(uid()));
     String profileName=s(m(state.get("me")),"username");profile.setText(profileName.length()>1?profileName.substring(0,2).toUpperCase(Locale.ROOT):profileName.toUpperCase(Locale.ROOT));profile.setToolTipText(s(m(state.get("me")),"handle"));profile.setPreferredSize(new Dimension(52,52));profile.setBorder(new EmptyBorder(8,8,8,8));
     JPanel avatarHolder=new JPanel(new GridBagLayout());avatarHolder.setOpaque(false);avatarHolder.setName("avatar");avatarHolder.add(profile);
     nav.add(actionRow(avatarHolder,button("Esci",()->frame.dispatchEvent(new WindowEvent(frame,WindowEvent.WINDOW_CLOSING)))), BorderLayout.EAST);
@@ -188,13 +192,15 @@ public final class App {
     JPanel form = new RoundPanel(SURFACE, 36);
     form.setBorder(new EmptyBorder(28, 38, 28, 38));
     form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-    form.setPreferredSize(new Dimension(500,register?612:470));
-    JTextField email = field("Email"), username = field("Nome utente");
+    form.setPreferredSize(new Dimension(500,register?642:500));
+    JTextField email = field(""), username = field("Nome utente");
+    email.getAccessibleContext().setAccessibleName("Email");
     JPasswordField pw = passwordField(24), confirm = passwordField(24);
     for(JPasswordField f:List.of(pw,confirm))styleInput(f);
 
     form.add(label(register ? "Crea il tuo account" : "Bentornato", 28, true));
-    form.add(Box.createVerticalStrut(22));
+    form.add(muted(api.base.contains("127.0.0.1")||api.base.contains("localhost")?"Server locale · dati separati dall’account online":"Server online · "+java.net.URI.create(api.base).getHost()));
+    form.add(Box.createVerticalStrut(12));
     if (register) {
       form.add(label("Nome utente", 14, true));
       form.add(username);
@@ -268,6 +274,7 @@ public final class App {
   boolean owns(Map<String,Object> e,String platform){return editions(e).stream().anyMatch(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))&&(platform.isBlank()||s(v,"platform").toLowerCase(Locale.ROOT).contains(platform.toLowerCase(Locale.ROOT))));}
   String editionStatus(Map<String,Object> e,String platform){return editions(e).stream().filter(v->s(v,"platform").equals(platform)).map(v->s(v,"status")).findFirst().orElse("");}
   void menu() {
+    navigationEpoch++;
     page = "Menu";
     JPanel root = new JPanel(new BorderLayout());
     root.setBackground(PINK);
@@ -299,10 +306,10 @@ public final class App {
       setOpaque(false);
     }
     int columns(int w) {
-      return Math.max(3, Math.min(6, (w + 14) / 190));
+      return Math.max(1, Math.min(8, (w + 14) / Math.round(150 * Theme.scale)));
     }
     int rowHeight() {
-      return Math.round(345 * Theme.scale);
+      return Math.round(285 * Theme.scale);
     }
     public Dimension getPreferredSize() {
       int w = getParent() != null ? getParent().getWidth() : getWidth();
@@ -370,7 +377,7 @@ public final class App {
     mutate("entry", obj("game", g.get("id"), "status", status, "favorite", favorite, "rating", rating), next);
   }
   void saveEdition(Map<String,Object> game,String platform,String status,boolean favorite,Object rating,Runnable next){mutate("entry",obj("game",game.get("id"),"platform",platform,"status",status,"favorite",favorite,"rating",rating),next);}
-  JPanel ratingPicker(JCheckBox enabled,JSpinner value){return col(enabled,new RatingStars(value,enabled),actionRow(muted("Voto / 10"),value));}
+  JPanel ratingPicker(JCheckBox enabled,JSpinner value){return col(enabled,new RatingDots(value,enabled),actionRow(muted("Voto / 10"),value));}
   void catalog(boolean library, String mode, List < Map < String, Object >> provided) {
     shell(library ? "Libreria" : "Catalogo");
     JPanel top = col();
@@ -433,7 +440,7 @@ public final class App {
       top.add(states);
     } else if (mode.equals("catalog")) {
       JPanel sections=row(button("Liste in evidenza",()->lists()),button("Giochi in evidenza",()->loadCatalog("","featured",0)),button("Retro",()->loadCatalog("","retro",0)));((FlowLayout)sections.getLayout()).setAlignment(FlowLayout.CENTER);top.add(sections);
-      if (! Json.yes(state, "igdb")) top.add(muted("Catalogo originale: 5 giochi. Configura IGDB per ricerca completa, " + "immagini e piattaforme retro."));
+      if (! Json.yes(state, "igdb")) top.add(muted("Catalogo locale di esempio: immagini e descrizioni complete richiedono il server online con IGDB attivo."));
     } else top.add(button("Torna al catalogo", () -> catalog(false, "catalog", null)));
     Runnable query =() -> {
       if (library || mode.equals("list") || provided != null && ! Json.yes(state, "igdb")) {
@@ -528,6 +535,9 @@ public final class App {
     showBody(col(upper, lower));
   }
   void detail(Map < String, Object > g) {
+    if(Json.yes(state,"igdb")&&!Json.yes(g,"metadataChecked")&&(s(g,"cover").isBlank()||s(g,"source").equals("originale"))){
+      work("Caricamento descrizione e immagini…",()->{Map<String,Object> result;try{result=api.call("game-metadata",obj("game",s(g,"id")));}catch(Exception unavailable){Map<String,Object> fallback=new LinkedHashMap<>(g);fallback.put("metadataChecked",true);result=obj("game",fallback);}return result;},r->{Map<String,Object> enriched=m(r.get("game"));for(Map<String,Object> current:rows("games"))if(s(current,"id").equals(s(enriched,"id")))current.putAll(enriched);detail(enriched);});return;
+    }
     shell("Catalogo");
     String gid = s(g, "id");
     Map < String, Object > e = entry(gid);
@@ -535,20 +545,16 @@ public final class App {
     if(!Arrays.asList(available).contains(selectedEdition))selectedEdition=available[0];
     final String platformEdition=selectedEdition;
     JPanel all = col();
-    Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 250);banner.setMaximumSize(new Dimension(Integer.MAX_VALUE,250));
-    all.add(banner);
-    JPanel head = new JPanel(new BorderLayout(22, 5));
-    head.setOpaque(false);head.setBorder(new EmptyBorder(12,0,12,0));
+    Art banner=new Art(s(g, "hero").isBlank() ? s(g, "cover") : s(g, "hero"), s(g, "name"), 1200, 230);
     JComboBox<String> edition=combo(available);
     edition.setSelectedItem(platformEdition);
     edition.setRenderer(new DefaultListCellRenderer(){public Component getListCellRendererComponent(JList<?> list,Object value,int index,boolean chosen,boolean focus){JLabel label=(JLabel)super.getListCellRendererComponent(list,value,index,chosen,focus);label.setFont(font(14,false));String platform=Objects.toString(value);label.setText(platform+(owns(e,platform)?" · Posseduto":editionStatus(e,platform).isBlank()?"":" · "+stateName(editionStatus(e,platform))));label.setBorder(new EmptyBorder(7,10,7,10));label.setBackground(chosen?LAV:SURFACE);label.setForeground(INK);return label;}});
-    Art cover=new Art(s(g,"cover"),s(g,"name"),180,coverHeight(180,edition.getSelectedItem().toString()));
-    cover.contain=true;
-    JPanel coverHolder=new JPanel(new BorderLayout());coverHolder.setOpaque(false);coverHolder.add(cover,BorderLayout.NORTH);
-    head.add(coverHolder,BorderLayout.WEST);
-    edition.addActionListener(ev->{selectedEdition=edition.getSelectedItem().toString();detail(g);});
-    JPanel summary = col(label(s(g, "name"), 26, true), muted(s(g, "year") + " · " + s(g, "platforms")), muted(s(g, "genres")), label("Edizione / formato della copertina",14,true),edition,wrap(s(g, "summary"), 480));
-    head.add(summary);
+    Art cover=new Art(s(g,"cover"),s(g,"name"),174,250);cover.contain=true;
+    JPanel coverHolder=new RoundPanel(SURFACE,20);coverHolder.setLayout(new BorderLayout());coverHolder.setBorder(new EmptyBorder(6,6,6,6));coverHolder.add(cover);
+    edition.setName("gameEdition");
+
+    JTextArea gameTitle=wrap(s(g,"name"),10000);gameTitle.setFont(font(26,true));gameTitle.setForeground(INK);
+    JPanel summary = col(gameTitle, wrap(s(g, "year") + " · " + s(g, "genres"),10000),wrap(s(g, "summary"), 10000));
     String [] st = {
       "Non in libreria", "In corso", "Finito", "Da giocare", "Desiderato"
     }, codes = {
@@ -564,30 +570,25 @@ public final class App {
     JCheckBox rated = new StyledCheckBox("Il tuo voto / 10", e.get("rating") != null);
     rated.setOpaque(false);
     rated.setForeground(BLUE);
-    JPanel controls = col(actionRow(button(owns(e,platformEdition)?"Edizione in libreria":"+ Libreria", true, () -> {if(!owns(e,platformEdition))saveEdition(g,platformEdition,"IN_CORSO",heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g));}), heart), label("Stato", 14, true), statusBox, ratingPicker(rated,rating), button("Salva", true, () -> saveEdition(g,platformEdition,codes[statusBox.getSelectedIndex()],heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g))));
+    JButton libraryButton=button(owns(e,platformEdition)?"In libreria":"+ Libreria",true,()->{String chosen=Objects.toString(edition.getSelectedItem());if(!owns(e,chosen))saveEdition(g,chosen,"IN_CORSO",heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g));});
+    JPanel controls=col(actionRow(libraryButton,heart,statusBox),label("Edizione",13,true),edition);
+    JPanel votePanel=new RoundPanel(LAV,18);votePanel.setLayout(new BorderLayout(8,4));votePanel.setBorder(new EmptyBorder(10,12,10,12));votePanel.add(rated,BorderLayout.NORTH);votePanel.add(new RatingDots(rating,rated));JLabel ratingText=muted(rated.isSelected()?rating.getValue()+" / 10":"— / 10");rating.addChangeListener(ev->ratingText.setText(rating.getValue()+" / 10"));rated.addItemListener(ev->ratingText.setText(rated.isSelected()?rating.getValue()+" / 10":"— / 10"));votePanel.add(ratingText,BorderLayout.EAST);controls.add(votePanel);
+    controls.add(actionRow(button("Salva",true,()->saveEdition(g,Objects.toString(edition.getSelectedItem()),codes[statusBox.getSelectedIndex()],heart.isSelected(),rated.isSelected()?rating.getValue():null,()->detail(g)))));
     Map < String, Object > hours = steamHours(gid, rows("links"));
     controls.add(muted(hours == null ? "Ore giocate: Non disponibile" : String.format(Locale.ITALY, "Steam · %.1f ore", Json.num(hours, "minutes") / 60.0)));
     if (! s(g, "steamApp").isBlank()) controls.add(button("Trofei / obiettivi Steam", () -> achievements(g, uid(), null)));
     else controls.add(muted("Trofei: nessun ID piattaforma collegato"));
-    controls.setPreferredSize(new Dimension(330, Math.max(320,controls.getPreferredSize().height)));
-    head.add(controls, BorderLayout.EAST);
+    GameHero head=new GameHero(banner,coverHolder,summary,controls);
     all.add(head);
+    edition.addActionListener(ev->{String chosen=Objects.toString(edition.getSelectedItem());selectedEdition=chosen;statusBox.setSelectedIndex(Math.max(0,Arrays.asList(codes).indexOf(editionStatus(e,chosen))));libraryButton.setText(owns(e,chosen)?"In libreria":"+ Libreria");head.revalidate();head.repaint();});
     JPanel reviewBox = card();
-    reviewBox.add(label("La tua recensione", 20, true), BorderLayout.NORTH);
-    JTextArea text = new JTextArea(3, 60);
-    text.setLineWrap(true);
-    text.setWrapStyleWord(true);
-    text.setBackground(LAV);
-    text.setForeground(BLUE);
-    text.setBorder(new EmptyBorder(12, 12, 12, 12));
-    reviewBox.add(textBox(text));
-    reviewBox.add(actionRow(button("Pubblica / aggiorna", true, () -> mutate("review", obj("game", gid, "text", text.getText()), () -> detail(g)))), BorderLayout.SOUTH);
-    all.add(reviewBox);
-    JPanel reviews = card();
-    reviews.add(label("Recensioni della community", 20, true), BorderLayout.NORTH);
-    JPanel reviewList = col(muted("Caricamento…"));
-    reviews.add(reviewList);
-    all.add(reviews);
+    JTextArea text = new JTextArea(3, 36);text.setLineWrap(true);text.setWrapStyleWord(true);text.setBackground(LAV);text.setForeground(BLUE);text.setBorder(new EmptyBorder(12,12,12,12));
+    JPanel reviewList=col(muted("Caricamento…"));
+    JPanel reviewContent=col(label("La tua recensione",20,true),textBox(text),actionRow(button("Pubblica / aggiorna",true,()->mutate("review",obj("game",gid,"text",text.getText()),()->detail(g)))),new JSeparator(),label("Recensioni della community",20,true),reviewList);reviewBox.add(reviewContent);
+    JPanel activity=card();activity.add(label("Attività degli amici",20,true),BorderLayout.NORTH);JPanel activityItems=col();
+    for(Map<String,Object> item:rows("feed").stream().filter(v->s(v,"game").equals(gid)).limit(5).toList())activityItems.add(wrap(s(item,"handle")+" "+s(item,"action"),300));
+    if(activityItems.getComponentCount()==0)activityItems.add(wrap("Qui vedrai le attività condivise dagli amici su questo gioco.",300));activity.add(activityItems,BorderLayout.CENTER);
+    JPanel lower=new JPanel(new GridBagLayout());lower.setOpaque(false);GridBagConstraints lc=new GridBagConstraints();lc.gridx=0;lc.weightx=.67;lc.fill=GridBagConstraints.BOTH;lc.anchor=GridBagConstraints.NORTHWEST;lc.insets=new Insets(0,0,0,20);lower.add(reviewBox,lc);lc.gridx=1;lc.weightx=.33;lc.insets=new Insets(0,0,0,0);lower.add(activity,lc);all.add(lower);
     showBody(all);
     work("Caricamento recensioni…", () -> api.call("reviews", obj("game", gid)), r -> {
       reviewList.removeAll();
@@ -602,20 +603,6 @@ public final class App {
       reviewList.revalidate();
       frame.repaint();
     });
-  }
-  static int coverHeight(int width,String platform){
-    String p=platform.toLowerCase(Locale.ROOT);
-    // Case aspect ratios vary by edition; these are platform defaults, not claims about a specific release.
-    double ratio;
-    if(p.contains("switch"))ratio=104d/170;
-    else if(p.contains("3ds")||p.contains("nintendo ds"))ratio=135d/122;
-    else if(p.equals("playstation")||p.contains("dreamcast")||p.contains("music cd"))ratio=142d/125;
-    else if(p.contains("game boy"))ratio=1;
-    else if(p.contains("super nintendo")||p.contains("snes")||p.contains("nintendo 64"))ratio=1.4;
-    else if(p.contains("nintendo entertainment")||p.equals("nes"))ratio=128d/178;
-    else if(p.contains("playstation 2")||p.contains("wii")||p.contains("gamecube")||p.contains("xbox"))ratio=135d/190;
-    else ratio=135d/170;
-    return (int)Math.round(width/ratio);
   }
   Map < String, Object > steamHours(String gid, List < Map < String, Object >> links) {
     for (Map < String, Object > link : links) for (Object o : l(link.get("games"))) if (s(m(o), "game").equals(gid)) return m(o);
@@ -672,20 +659,36 @@ public final class App {
     showBody(body);
   }
   void profile(String target) {
-    work("Caricamento profilo…", () -> api.call("profile", obj("user", target)), r -> {
-      shell("Amici");
-      Map < String, Object > u = m(r.get("user"));
-      title(s(u, "handle"));
-      JPanel body = col(row(button("Confronta statistiche e trofei", true, () -> compare(target)), button("Torna agli amici", () -> friends())));
-      if (! Json.yes(r, "visible")) body.add(label("Questa libreria è privata", 20, true));
-      else {
-        List < Map < String, Object >> items = l(r.get("entries")).stream().map(Json::map).filter(e -> Set.of("FINITO", "IN_CORSO").contains(s(e, "status"))).map(e -> game(s(e, "game"))).toList();
-        List<Map<String,Object>> entries=l(r.get("entries")).stream().map(Json::map).toList();
-        JComboBox<String> filter=combo(java.util.stream.Stream.concat(java.util.stream.Stream.of("Tutte le piattaforme"),entries.stream().flatMap(e->editions(e).stream()).filter(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))).map(v->s(v,"platform")).distinct().sorted()).toArray(String[]::new));
-        JPanel gamesPanel=new JPanel(new BorderLayout());gamesPanel.setOpaque(false);Runnable refresh=()->{String platform=filter.getSelectedIndex()==0?"":filter.getSelectedItem().toString();gamesPanel.removeAll();gamesPanel.add(grid(entries.stream().filter(e->owns(e,platform)).map(e->{Map<String,Object> copy=new LinkedHashMap<>(game(s(e,"game")));copy.put("ownedEntry",e);return copy;}).toList(),false));gamesPanel.revalidate();frame.repaint();};filter.addActionListener(ev->refresh.run());body.add(filter);body.add(gamesPanel);refresh.run();
-      }
-      showBody(body);
-    });
+    work("Caricamento profilo…",()->api.call("profile",obj("user",target)),r->renderProfile(target,r));
+  }
+  void renderProfile(String target,Map<String,Object> r){
+    shell("");boolean self=target.equals(uid()),visible=Json.yes(r,"visible");Map<String,Object> u=m(r.get("user"));
+    JPanel header=col(label(s(u,"username"),30,true),muted(s(u,"handle")));
+    header.add(self?actionRow(button("Modifica profilo",true,()->editProfile(u))):actionRow(button("Confronta statistiche e trofei",()->compare(target)),button("Aggiungi amico",true,()->mutate("friend",obj("user",target),()->profile(target)))));
+    String info=java.util.stream.Stream.of(s(u,"age").isBlank()?"":s(u,"age")+" anni",s(u,"gender"),s(u,"origin")).filter(v->!v.isBlank()).collect(java.util.stream.Collectors.joining(" · "));
+    if(!info.isBlank())header.add(muted(info));if(!s(u,"bio").isBlank())header.add(wrap(s(u,"bio"),950));
+    JPanel body=col(header);
+    List<Map<String,Object>> entries=l(r.get("entries")).stream().map(Json::map).toList();
+    JPanel featured=card();JLabel favoriteTitle=label("Giochi preferiti",22,true);favoriteTitle.setHorizontalAlignment(SwingConstants.CENTER);featured.add(favoriteTitle,BorderLayout.NORTH);
+    List<Map<String,Object>> favorites=entries.stream().filter(v->Json.yes(v,"favorite")).map(v->game(s(v,"game"))).limit(4).toList();
+    JPanel favoriteRow=new JPanel(new FlowLayout(FlowLayout.CENTER,14,8));favoriteRow.setOpaque(false);for(Map<String,Object> favorite:favorites){JPanel tile=new RoundPanel(SURFACE,20);tile.setLayout(new BorderLayout(0,8));tile.setBorder(new EmptyBorder(8,8,8,8));tile.setPreferredSize(new Dimension(175,250));Art artwork=new Art(s(favorite,"cover"),s(favorite,"name"),155,190);artwork.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));artwork.addMouseListener(new MouseAdapter(){public void mouseClicked(MouseEvent ev){detail(favorite);}});tile.add(artwork);JButton name=button(s(favorite,"name"),()->detail(favorite));name.setToolTipText(s(favorite,"name"));tile.add(name,BorderLayout.SOUTH);favoriteRow.add(tile);}
+    featured.add(!visible?muted("Preferiti riservati dalla privacy della libreria"):favorites.isEmpty()?muted("Nessun gioco preferito in evidenza"):favoriteRow);body.add(featured);
+    JPanel library=card();library.add(label(self?"La tua libreria":"Libreria",22,true),BorderLayout.NORTH);
+    if(visible){JPanel preview=col(muted(owned(entries).size()+" giochi posseduti"));for(Map<String,Object> v:owned(entries).stream().limit(2).toList()){Map<String,Object> previewGame=game(s(v,"game"));Art thumbnail=new Art(s(previewGame,"cover"),s(previewGame,"name"),48,62);thumbnail.setMaximumSize(new Dimension(48,62));thumbnail.setMinimumSize(new Dimension(48,62));preview.add(actionRow(thumbnail,label(s(previewGame,"name"),15,true)));}preview.add(actionRow(button("Apri libreria",true,()->profileLibrary(target,r))));library.add(preview);}else library.add(muted("Questa libreria è privata"));
+    JPanel lists=card();lists.add(label("Liste personali",22,true),BorderLayout.NORTH);JPanel listItems=col();for(Object o:l(r.get("lists"))){Map<String,Object> ls=m(o);listItems.add(actionRow(button(s(ls,"title"),()->showList(ls))));}if(listItems.getComponentCount()==0)listItems.add(muted("Nessuna lista visibile"));if(self)listItems.add(actionRow(button("Crea lista",()->createList())));lists.add(listItems);
+    JPanel friends=card();friends.add(label("Amici",22,true),BorderLayout.NORTH);JPanel friendItems=col();for(Object o:l(r.get("friends"))){Map<String,Object> f=m(o);friendItems.add(actionRow(button(s(f,"handle"),()->profile(s(f,"id")))));}if(friendItems.getComponentCount()==0)friendItems.add(muted(visible?"Nessun amico da mostrare":"Amici riservati"));friends.add(friendItems);
+    JPanel sections=new JPanel(new GridLayout(1,3,18,18));sections.setOpaque(false);sections.add(library);sections.add(lists);sections.add(friends);body.add(sections);showBody(body);
+  }
+  void editProfile(Map<String,Object> u){
+    JTextField name=field("Nome utente"),age=field("Età (facoltativa)"),gender=field("Sesso (facoltativo)"),origin=field("Provenienza (facoltativa)");name.setText(s(u,"username"));age.setText(s(u,"age"));gender.setText(s(u,"gender"));origin.setText(s(u,"origin"));JTextArea bio=new JTextArea(s(u,"bio"),4,30);bio.setLineWrap(true);bio.setWrapStyleWord(true);bio.setFont(font(14,false));bio.setBackground(LAV);bio.setForeground(INK);
+    JPanel form=col(label("Nome utente",14,true),name,label("Età",14,true),age,label("Sesso",14,true),gender,label("Provenienza",14,true),origin,label("Bio · massimo 500 caratteri",14,true),textBox(bio),wrap("Questi campi sono facoltativi e visibili a chi apre il tuo profilo. Puoi lasciarli vuoti.",420));
+    if(JOptionPane.showConfirmDialog(frame,form,"Modifica profilo",JOptionPane.OK_CANCEL_OPTION,JOptionPane.PLAIN_MESSAGE)==JOptionPane.OK_OPTION)mutate("profile-update",obj("username",name.getText(),"age",age.getText(),"gender",gender.getText(),"origin",origin.getText(),"bio",bio.getText()),()->profile(uid()));
+  }
+  void profileLibrary(String target,Map<String,Object> r){
+    shell("");title("Libreria · "+s(m(r.get("user")),"username"));JPanel body=col(actionRow(button("Torna al profilo",()->profile(target))));
+    List<Map<String,Object>> entries=l(r.get("entries")).stream().map(Json::map).toList();
+    JComboBox<String> filter=combo(java.util.stream.Stream.concat(java.util.stream.Stream.of("Tutte le piattaforme"),entries.stream().flatMap(e->editions(e).stream()).filter(v->Set.of("FINITO","IN_CORSO").contains(s(v,"status"))).map(v->s(v,"platform")).distinct().sorted()).toArray(String[]::new));
+    JPanel gamesPanel=new JPanel(new BorderLayout());gamesPanel.setOpaque(false);Runnable refresh=()->{String platform=filter.getSelectedIndex()==0?"":filter.getSelectedItem().toString();gamesPanel.removeAll();gamesPanel.add(grid(entries.stream().filter(e->owns(e,platform)).map(e->{Map<String,Object> copy=new LinkedHashMap<>(game(s(e,"game")));copy.put("ownedEntry",e);return copy;}).toList(),false));gamesPanel.revalidate();frame.repaint();};filter.addActionListener(ev->refresh.run());body.add(filter);body.add(gamesPanel);refresh.run();showBody(body);
   }
   List < Map < String, Object >> owned(List < Map < String, Object >> entries) {
     return entries.stream().filter(e -> Set.of("FINITO", "IN_CORSO").contains(s(e, "status"))).toList();
@@ -754,7 +757,7 @@ public final class App {
         if (Json.yes(m(a), "unlocked")) unlocked ++;
       }
       linkData.add(label("Obiettivi importati: " + unlocked + " / " + total + "  ·  " + cache.size() + " giochi sincronizzati", 18, true));
-      linkData.add(muted("Conteggio parziale finché non sincronizzi tutti i giochi. Nessun dato " + "PlayStation/Xbox importato."));
+      linkData.add(muted("Questa sezione mostra dati Steam; le cronologie console sono nei collegamenti."));
       linkData.add(row(button("Sincronizza ore", true, () -> syncSteam()), button("Sincronizza obiettivi dei giochi giocati", () -> syncTrophies()), button("Apri un gioco Steam", () -> catalog(true, "library", null))));
       Map < String, Double > hours = new LinkedHashMap < >();
       l(link.get("games")).stream().map(Json::map).sorted(Comparator.comparingLong((Map < String, Object > g) -> Json.num(g, "minutes")).reversed()).limit(6).forEach(g -> hours.put(s(game(s(g, "game")), "name"), Json.num(g, "minutes") / 60.0));
@@ -1017,7 +1020,7 @@ public final class App {
       })));
     }
     lp.add(button("Aggiorna collegamenti", () -> reload(() -> settings())));
-    lp.add(muted("PlayStation, Xbox e Nintendo: integrazioni non disponibili."));
+    lp.add(new ConsolePanel(this).panel());
     lp.add(muted(Json.yes(state, "steam") ? "Steam Web API configurata" : "Chiave Steam Web API da configurare sul server"));
     links.add(lp);
     JPanel accessibility = card();
@@ -1031,7 +1034,7 @@ public final class App {
     size.setSelectedIndex(Theme.scale > 1 ? 1 : 0);
     JCheckBox contrast = new StyledCheckBox("Contrasto elevato", Theme.contrast);
     contrast.setOpaque(false);
-    StyledCheckBox darkMode=new StyledCheckBox("Modalità scura · verde e oro",Theme.dark);
+    StyledCheckBox darkMode=new StyledCheckBox("Modalità scura",Theme.dark);
     accessibility.add(col(darkMode,label("Lingua", 14, true), lang, label("Dimensione testo", 14, true), size, contrast, muted("L'interfaccia non usa animazioni."), button("Applica", true, () -> {
       prefs.putBoolean("darkMode",darkMode.isSelected());Theme.palette(darkMode.isSelected());
       Theme.scale = size.getSelectedIndex() == 1 ? 1.15f : 1;
@@ -1142,7 +1145,7 @@ public final class App {
       if (sum == 0) {
         a.setFont(font(14, false));
         a.setColor(MUTED);
-        a.drawString("Nessun dato disponibile", 20, 80);
+        a.drawString("Nessun dato disponibile", 0, a.getFontMetrics().getAscent()+4);
         a.dispose();
         return;
       }
@@ -1196,7 +1199,7 @@ public final class App {
   public static void main(String [] args) throws Exception {
     System.setProperty("awt.useSystemAAFontSettings", "on");
     System.setProperty("swing.aatext", "true");
-    String base = System.getProperty("gbm.server", System.getenv().getOrDefault("GBM_SERVER_URL", "http://127.0.0.1:8787"));
+    String base = System.getProperty("gbm.server", System.getenv().getOrDefault("GBM_SERVER_URL", "https://gamebacklogmanager.onrender.com"));
     Api api = new Api(base);
     if (base.equals("http://127.0.0.1:8787")) {
       try {

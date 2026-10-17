@@ -1,0 +1,123 @@
+OK server health
+OK anonymous access rejected
+OK unique user IDs
+OK private by default
+OK password hash never sent
+OK favorite independent of library
+OK invalid rating rejected
+OK own review vote rejected
+OK single vote per user and replacement
+OK voter identities not leaked
+OK private library hidden server-side
+OK sender cannot accept own request
+OK friend acceptance
+OK friend-only library and comparison permitted
+OK trophy sharing does not leak hours or provider ID
+OK stats sharing does not leak trophies
+OK private trophies blocked
+OK private list hidden
+OK public list visible
+OK unconfigured provider explicit error
+OK unconfigured Steam explicit error
+OK logout revokes token
+OK old password invalidated
+OK export excludes credentials
+OK persistent store reload
+OK password not stored in plaintext
+OK invalid OpenID callback rejected
+OK unconfigured SMTP explicit error
+OK wrong reset code rejected
+OK password reset revokes sessions
+OK reset code single use
+OK JSON roundtrip
+PASS 32 checks
+OK IGDB bearer authentication
+OK IGDB stable ID
+OK retro platform metadata
+OK IGDB image URL
+OK IGDB query escaping, paging and retro filter
+OK Steam library response
+OK Steam schema and player achievements merged
+OK HTTPS email provider configured without SMTP
+OK Brevo API key header
+OK first sync excludes historical hours
+OK subsequent sync measures observed delta
+OK achievement cache persisted
+OK provider counter reset does not create negative hours
+OK unlink removes imported data and observations
+PASS provider fixture tests (no live credentials used)
+OK platform upsert never duplicates an edition
+OK aggregate keeps active edition
+OK legacy favorite update preserves all editions
+OK unsupported edition rejected
+OK removing PC preserves PlayStation edition
+OK private edition ownership stays private
+OK public profile exposes actual owned editions
+OK editions survive restart
+OK legacy multi-platform ownership is not guessed
+PASS edition persistence and privacy
+OK owner sees private and public lists
+OK visitor only sees public lists
+OK private favorites and ownership stay private
+OK public bio available on profile
+OK profile excludes credentials
+OK invalid age rejected
+OK invalid profile does not partially change bio
+OK username-only update preserves profile fields
+OK public favorites include games outside library
+OK profile update cannot impersonate another user
+OK profile survives restart
+PASS profile validation, privacy and persistence
+OK embedded rounded font loaded
+OK label uses shared typeface
+OK password uses shared typeface
+OK dropdown uses shared typeface
+OK checkbox uses shared typeface
+OK original raster logo loaded
+OK appended action keeps vertical gap
+OK appended action aligns with label
+OK action does not stretch
+OK seven real menu buttons
+OK menu bounds: Home
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Catalogo
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Libreria
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Amici
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Statistiche
+OK menu tiles never overlap
+OK menu tiles never overlap
+OK menu bounds: Impostazioni
+OK menu tiles never overlap
+OK menu bounds: Esci
+OK menu actions include exit
+OK artwork raster matches display density
+OK artwork rounded corner remains transparent
+OK artwork content survives rounded mask
+OK IGDB high-resolution cover requested
+OK favorite rendered as vector icon, not missing font glyph
+PASS UI regressions
+PASS hero panels, long descriptions, fixed cover, compact grid, light/dark and text scaling
+PASS complete action captions: Metal; text 100/115%; density 100/125/150/200%
+PASS complete action captions: Nimbus; text 100/115%; density 100/125/150/200%
+
+PASS edition popup switching keeps EDT responsive
+PASS logo artwork returns to initial menu
+PASS late network callback cannot override logo navigation
+PASS demo opens isolated local server without modifying original account

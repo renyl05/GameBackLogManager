@@ -13,7 +13,7 @@ public final class Store {
     this.path = path;
     database=SnapshotDatabase.setting(cfg,"JDBC_DATABASE_URL","").isBlank()?null:new SnapshotDatabase(cfg);
     root = database!=null ? database.load() : Files.exists(path) ? Json.map(Json.read(Files.readString(path))) : Json.obj();
-    for (String k : List.of("users", "entries", "reviews", "requests", "links", "snapshots", "lists", "activities")) root.computeIfAbsent(k, z -> new ArrayList < >());
+    for (String k : List.of("users", "entries", "reviews", "requests", "links", "snapshots", "lists", "activities", "consoleLinks")) root.computeIfAbsent(k, z -> new ArrayList < >());
     root.computeIfAbsent("games", z -> seed());
     for(Object o:rows("entries")){Map<String,Object> e=Json.map(o);if(!e.containsKey("editions")){List<Object> editions=new ArrayList<>();String status=Json.str(e,"status");if(!status.isBlank()){Map<String,Object> game=find("games","id",Json.str(e,"game"));String platforms=game==null?"":Json.str(game,"platforms");String platform=platforms.isBlank()||platforms.contains(",")?"Edizione non specificata":platforms;editions.add(Json.obj("platform",platform,"status",status));}e.put("editions",editions);}}
     Map<String,Object> minecraft=find("games","id","local:minecraft");if(minecraft!=null)minecraft.put("platforms","PC, PlayStation 4, PlayStation 5, Xbox One, Nintendo Switch");

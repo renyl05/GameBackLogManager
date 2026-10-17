@@ -1,0 +1,6 @@
+{
+  "games": [
+    {"name": "The Legend of Zelda: Tears of the Kingdom", "platform": "Nintendo Switch"},
+    {"name": "Super Mario Odyssey", "platform": "Nintendo Switch"}
+  ]
+}
